@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -345,7 +345,7 @@
       margin-left: 8px;
     }
     .badge-nivel.basico { background: rgba(56,189,248,0.2); color: var(--a1); }
-    .badge-nivel.intermedio { background: rgba(245,158,11,0.2); color: var(--a4); }
+    .badge-nivel.intermedio { background: rgba(245,158,11,0.2); color: #f59e0b; }
     .badge-nivel.avanzado { background: rgba(239,68,68,0.2); color: #f87171; }
     .badge-tipo {
       display: inline-block;
@@ -404,7 +404,7 @@
     // ============================================================
     const SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbyhL7BAwoDtJLw6YsPMKwtYIubPno3MLPVthpAeDrRyoS_lwI8DOr00Xw58wGi90aaHiQ/exec";
     const ACTIVE_SHEET_NAME = localStorage.getItem('sti_active_sheet_name') || "Datossti";
-    const TOTAL_PREGUNTAS = 25; // 5 preguntas x 5 módulos
+    const TOTAL_PREGUNTAS = 25;
     const PREGUNTAS_POR_MODULO = 5;
 
     const MODULOS_STI = [
@@ -432,15 +432,17 @@
       endedAt: null,
       score: 0,
       level: '',
-      historialPreguntas: [] // Para adaptatividad
+      historialPreguntas: []
     };
 
     let currentModuloIndex = 0;
-    let preguntasRespondidasPorModulo = 0;
+    let preguntasRespondidasModulo = 0;
     let preguntasModuloActual = [];
     let currentProfileStep = 0;
     let preguntaActual = null;
     let soundOn = true;
+    let isEsperandoRespuesta = false;
+    let moduloCompletado = false;
 
     // ============================================================
     // DOM REFERENCIAS
@@ -503,7 +505,7 @@
     }
 
     function setProgress() {
-      const totalRespondidas = currentModuloIndex * PREGUNTAS_POR_MODULO + preguntasRespondidasPorModulo;
+      const totalRespondidas = currentModuloIndex * PREGUNTAS_POR_MODULO + preguntasRespondidasModulo;
       const p = Math.round((totalRespondidas / TOTAL_PREGUNTAS) * 100);
       barFill.style.width = `${p}%`;
       progText.textContent = `Progreso: ${p}%`;
@@ -572,77 +574,80 @@
           localStorage.setItem('sti_student_id', db.student.id);
           state.textContent = 'En línea';
           row(`¡Registro Exitoso! Bienvenido **${db.student.name} ${db.student.lastname}**. Iniciaremos el diagnóstico adaptativo con ${TOTAL_PREGUNTAS} preguntas (5 por módulo). ¡Comencemos!`, 'bot');
-          setTimeout(ejecutarSiguienteModulo, 1500);
+          setTimeout(iniciarDiagnostico, 1500);
           break;
       }
     }
 
     // ============================================================
-    // SELECCIONAR PREGUNTAS PARA EL MÓDULO ACTUAL
+    // INICIAR DIAGNÓSTICO
     // ============================================================
-    function seleccionarPreguntasModulo(moduloId) {
-      // Usar el motor adaptativo con el historial
-      const preguntas = seleccionarPreguntasAdaptativas(
-        moduloId,
-        db.historialPreguntas.filter(h => h.modulo === moduloId),
+    function iniciarDiagnostico() {
+      currentModuloIndex = 0;
+      preguntasRespondidasModulo = 0;
+      moduloCompletado = false;
+      cargarSiguienteModulo();
+    }
+
+    // ============================================================
+    // CARGAR SIGUIENTE MÓDULO
+    // ============================================================
+    function cargarSiguienteModulo() {
+      if (currentModuloIndex >= MODULOS_STI.length) {
+        finalizarEvaluacion();
+        return;
+      }
+
+      const moduloActual = MODULOS_STI[currentModuloIndex];
+      preguntasRespondidasModulo = 0;
+      moduloCompletado = false;
+      
+      // Seleccionar preguntas adaptativas para este módulo
+      preguntasModuloActual = seleccionarPreguntasAdaptativas(
+        moduloActual.id,
+        db.historialPreguntas.filter(h => h.modulo === moduloActual.id),
         PREGUNTAS_POR_MODULO
       );
-      return preguntas;
-    }
-
-    // ============================================================
-    // EJECUTAR SIGUIENTE MÓDULO
-    // ============================================================
-    function ejecutarSiguienteModulo() {
-      if (currentModuloIndex < MODULOS_STI.length) {
-        const moduloActual = MODULOS_STI[currentModuloIndex];
-        preguntasRespondidasPorModulo = 0;
-        
-        // Seleccionar preguntas para este módulo
-        preguntasModuloActual = seleccionarPreguntasModulo(moduloActual.id);
-        
-        state.textContent = `Evaluando Módulo ${currentModuloIndex + 1}/5 - ${moduloActual.id}`;
-        
-        if (preguntasModuloActual.length === 0) {
-          // Si no hay preguntas, usar contingencia
-          row(`⚠️ No se encontraron preguntas para ${moduloActual.id}. Usando preguntas de contingencia.`, 'bot');
-          preguntasModuloActual = generarPreguntasContingencia(moduloActual.clave, PREGUNTAS_POR_MODULO);
-        }
-        
-        input.disabled = true;
-        send.disabled = true;
-        input.placeholder = "Selecciona una opción del diagnóstico...";
-
-        row(`📚 **${moduloActual.id}** - Responderás ${preguntasModuloActual.length} preguntas.`, 'bot');
-        
-        setTimeout(mostrarSiguientePregunta, 1000);
-      } else {
-        finalizarEvaluacion();
+      
+      state.textContent = `Evaluando Módulo ${currentModuloIndex + 1}/5 - ${moduloActual.id}`;
+      
+      if (preguntasModuloActual.length === 0) {
+        row(`⚠️ No se encontraron preguntas para ${moduloActual.id}. Usando preguntas de contingencia.`, 'bot');
+        preguntasModuloActual = generarPreguntasContingencia(moduloActual.clave, PREGUNTAS_POR_MODULO);
       }
+      
+      input.disabled = true;
+      send.disabled = true;
+      input.placeholder = "Selecciona una opción del diagnóstico...";
+
+      row(`📚 **${moduloActual.id}** - Responderás ${preguntasModuloActual.length} preguntas.`, 'bot');
+      
+      setTimeout(mostrarPregunta, 1000);
     }
 
     // ============================================================
-    // MOSTRAR SIGUIENTE PREGUNTA
+    // MOSTRAR PREGUNTA
     // ============================================================
-    function mostrarSiguientePregunta() {
-      if (preguntasRespondidasPorModulo >= preguntasModuloActual.length) {
-        // Módulo completado
+    function mostrarPregunta() {
+      if (moduloCompletado) return;
+
+      if (preguntasRespondidasModulo >= preguntasModuloActual.length) {
+        // Módulo completado, pasar al siguiente
         currentModuloIndex++;
-        setTimeout(ejecutarSiguienteModulo, 1000);
+        setTimeout(cargarSiguienteModulo, 1000);
         return;
       }
 
       setProgress();
-      const pregunta = preguntasModuloActual[preguntasRespondidasPorModulo];
+      const pregunta = preguntasModuloActual[preguntasRespondidasModulo];
       preguntaActual = pregunta;
       
       const moduloActual = MODULOS_STI[currentModuloIndex];
-      const numPregunta = currentModuloIndex * PREGUNTAS_POR_MODULO + preguntasRespondidasPorModulo + 1;
+      const numPregunta = currentModuloIndex * PREGUNTAS_POR_MODULO + preguntasRespondidasModulo + 1;
       
       const badgeNivel = getNivelTexto(pregunta.nivel);
       const badgeTipo = getTipoTexto(pregunta.tipo);
       
-      // Mostrar pregunta
       const contenedorPregunta = document.createElement('div');
       contenedorPregunta.className = 'msg-row bot';
       
@@ -655,29 +660,26 @@
         ${pregunta.pregunta}<br><br>`;
       
       if (pregunta.tipo === 'vf') {
-        // Verdadero/Falso
         htmlContenido += `<strong>Selecciona tu respuesta:</strong><div class="choices">
-          <button class="option-eval-btn" onclick="evaluarRespuestaSeleccionada(true)">
+          <button class="option-eval-btn" onclick="evaluarRespuesta(true)">
             <strong>✅</strong> Verdadero
           </button>
-          <button class="option-eval-btn" onclick="evaluarRespuestaSeleccionada(false)">
+          <button class="option-eval-btn" onclick="evaluarRespuesta(false)">
             <strong>❌</strong> Falso
           </button>
         </div>`;
       } else if (pregunta.tipo === 'completacion') {
-        // Completación - mostrar opciones
         htmlContenido += `<strong>Selecciona la palabra correcta:</strong><div class="choices">`;
         pregunta.opciones.forEach((opcion, index) => {
-          htmlContenido += `<button class="option-eval-btn" onclick="evaluarRespuestaSeleccionada('${opcion}')">
+          htmlContenido += `<button class="option-eval-btn" onclick="evaluarRespuesta('${opcion}')">
             <strong>${String.fromCharCode(65 + index)})</strong> ${opcion}
           </button>`;
         });
         htmlContenido += `</div>`;
       } else {
-        // Selección múltiple (4 opciones)
         htmlContenido += `<strong>Selecciona tu respuesta:</strong><div class="choices">`;
         pregunta.opciones.forEach((opcion, index) => {
-          htmlContenido += `<button class="option-eval-btn" onclick="evaluarRespuestaSeleccionada(${index})">
+          htmlContenido += `<button class="option-eval-btn" onclick="evaluarRespuesta(${index})">
             <strong>${String.fromCharCode(65 + index)})</strong> ${opcion}
           </button>`;
         });
@@ -688,12 +690,16 @@
       contenedorPregunta.innerHTML = htmlContenido;
       chatbox.appendChild(contenedorPregunta);
       scrollBottom();
+      isEsperandoRespuesta = true;
     }
 
     // ============================================================
     // EVALUAR RESPUESTA
     // ============================================================
-    function evaluarRespuestaSeleccionada(respuestaUsuario) {
+    function evaluarRespuesta(respuestaUsuario) {
+      if (!isEsperandoRespuesta) return;
+      isEsperandoRespuesta = false;
+      
       clickSound();
       
       const botones = document.querySelectorAll('.option-eval-btn');
@@ -703,7 +709,6 @@
       const moduloActual = MODULOS_STI[currentModuloIndex];
       const clave = moduloActual.clave;
       
-      // Evaluar respuesta
       const resultado = evaluarRespuestaDiagnostico(pregunta, respuestaUsuario);
       
       // Mostrar respuesta del usuario
@@ -717,7 +722,7 @@
       }
       row(`📝 ${textoRespuesta}`, 'user');
 
-      // Registrar en historial para adaptatividad
+      // Registrar historial
       db.historialPreguntas.push({
         modulo: moduloActual.id,
         preguntaId: pregunta.id,
@@ -725,13 +730,13 @@
         correcta: resultado.correcta
       });
 
-      // Registrar en estadísticas
+      // Registrar estadísticas
       db.themes[clave].total += 1;
       if (resultado.correcta) {
         db.score += 1;
         db.themes[clave].score += 1;
         okSound();
-        // Marcar botón correcto
+        // Marcar correcta
         const botonesCorrectos = document.querySelectorAll('.option-eval-btn');
         botonesCorrectos.forEach((btn, idx) => {
           if (pregunta.tipo === 'multiple' && idx === pregunta.respuestaCorrecta) {
@@ -747,7 +752,6 @@
         row(`✅ **¡Correcto!** ${pregunta.feedback}`, 'bot');
       } else {
         badSound();
-        // Marcar la respuesta correcta
         const botonesCorrectos = document.querySelectorAll('.option-eval-btn');
         botonesCorrectos.forEach((btn, idx) => {
           if (pregunta.tipo === 'multiple' && idx === pregunta.respuestaCorrecta) {
@@ -760,7 +764,6 @@
             btn.classList.add('correct');
           }
         });
-        // Marcar la respuesta incorrecta seleccionada
         if (respuestaUsuario !== undefined && respuestaUsuario !== null) {
           botonesCorrectos.forEach((btn) => {
             if (btn.textContent.includes(textoRespuesta) || 
@@ -786,10 +789,10 @@
       });
 
       scrollBottom();
-      preguntasRespondidasPorModulo++;
+      preguntasRespondidasModulo++;
       setProgress();
       
-      setTimeout(mostrarSiguientePregunta, 3500);
+      setTimeout(mostrarPregunta, 3500);
     }
 
     // ============================================================
@@ -868,6 +871,40 @@
         resultado.push(preguntas[i % preguntas.length]);
       }
       return resultado;
+    }
+
+    // ============================================================
+    // GENERAR PLAN DE RUTA
+    // ============================================================
+    function generarPlanDeRuta(nivel) {
+      let htmlPlan = `<div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                        <h4 style="margin:0 0 8px; color:var(--a1);">🗺️ Ruta Adaptativa para el Estudiante:</h4>
+                        <ul style="margin:0; padding-left:20px; font-size:0.88rem; color:var(--muted); line-height:1.6;">`;
+      
+      const pctIntro = themePct('intro');
+      const pctRel = themePct('relacional');
+      const pctSql = themePct('sql');
+      const pctDis = themePct('diseno');
+      const pctTools = themePct('tools');
+
+      if (nivel === 'Básico') {
+        htmlPlan += `<li><strong>Nivelación Obligatoria:</strong> Repasar conceptos del Módulo 1 (Arquitectura ANSI-SPARC e Independencia de Datos).</li>`;
+        htmlPlan += `<li><strong>Refuerzo Lógico:</strong> Ejercicios guiados de Transformación de MER a tablas relacionales antes de utilizar código.</li>`;
+      } else if (nivel === 'Intermedio') {
+        if (pctRel < 75 || pctDis < 75) {
+          htmlPlan += `<li><strong>Eje de Diseño:</strong> Reforzar las Formas Normales (1FN a 3FN) y Dependencias Transitivas para mitigar anomalías.</li>`;
+        }
+        if (pctSql < 75) {
+          htmlPlan += `<li><strong>Eje Sintáctico:</strong> Prácticas intensivas de consultas multitabla empleando Cláusulas JOIN y Funciones de Agregación.</li>`;
+        }
+        htmlPlan += `<li><strong>Avance Secuencial:</strong> Autorizado para iniciar laboratorios del Módulo 5 (MySQL) y Módulo 6 (PostgreSQL).</li>`;
+      } else {
+        htmlPlan += `<li><strong>Fase Avanzada Directa:</strong> Exención de contenidos descriptivos básicos. Foco en optimización física de consultas y planes de ejecución.</li>`;
+        htmlPlan += `<li><strong>Lógica Procedimental:</strong> Desarrollo avanzado de Triggers y automatización de lógica interna mediante funciones en PL/pgSQL.</li>`;
+      }
+      
+      htmlPlan += `</ul></div>`;
+      return htmlPlan;
     }
 
     // ============================================================
@@ -1023,40 +1060,6 @@
           scrollBottom();
         });
       }
-    }
-
-    // ============================================================
-    // GENERAR PLAN DE RUTA
-    // ============================================================
-    function generarPlanDeRuta(nivel) {
-      let htmlPlan = `<div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                        <h4 style="margin:0 0 8px; color:var(--a1);">🗺️ Ruta Adaptativa para el Estudiante:</h4>
-                        <ul style="margin:0; padding-left:20px; font-size:0.88rem; color:var(--muted); line-height:1.6;">`;
-      
-      const pctIntro = themePct('intro');
-      const pctRel = themePct('relacional');
-      const pctSql = themePct('sql');
-      const pctDis = themePct('diseno');
-      const pctTools = themePct('tools');
-
-      if (nivel === 'Básico') {
-        htmlPlan += `<li><strong>Nivelación Obligatoria:</strong> Repasar conceptos del Módulo 1 (Arquitectura ANSI-SPARC e Independencia de Datos).</li>`;
-        htmlPlan += `<li><strong>Refuerzo Lógico:</strong> Ejercicios guiados de Transformación de MER a tablas relacionales antes de utilizar código.</li>`;
-      } else if (nivel === 'Intermedio') {
-        if (pctRel < 75 || pctDis < 75) {
-          htmlPlan += `<li><strong>Eje de Diseño:</strong> Reforzar las Formas Normales (1FN a 3FN) y Dependencias Transitivas para mitigar anomalías.</li>`;
-        }
-        if (pctSql < 75) {
-          htmlPlan += `<li><strong>Eje Sintáctico:</strong> Prácticas intensivas de consultas multitabla empleando Cláusulas JOIN y Funciones de Agregación.</li>`;
-        }
-        htmlPlan += `<li><strong>Avance Secuencial:</strong> Autorizado para iniciar laboratorios del Módulo 5 (MySQL) y Módulo 6 (PostgreSQL).</li>`;
-      } else {
-        htmlPlan += `<li><strong>Fase Avanzada Directa:</strong> Exención de contenidos descriptivos básicos. Foco en optimización física de consultas y planes de ejecución.</li>`;
-        htmlPlan += `<li><strong>Lógica Procedimental:</strong> Desarrollo avanzado de Triggers y automatización de lógica interna mediante funciones en PL/pgSQL.</li>`;
-      }
-      
-      htmlPlan += `</ul></div>`;
-      return htmlPlan;
     }
 
     // ============================================================

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso al Sistema - STI Base de Datos</title>
+  <style>
+    :root {
+      --bg1: #0e2b06;
+      --bg2: #052101;
+      --glass: rgba(255, 255, 255, .06);
+      --line: rgba(255, 255, 255, .1);
+      --text: #eaf2ff;
+      --muted: #9db0d1;
+      --a1: #38bdf8;
+      --a2: #8b5cf6;
+      --a3: #22c55e;
+      --shadow: 0 20px 50px rgba(0, 0, 0, .6);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: radial-gradient(circle at 50% 50%,#abe8a2  0%, #0b280a  100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--bg2);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 40px 30px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .logo-area {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 1.6rem;
+      color: #fff;
+    }
+
+    h1 span {
+      color: var(--a1);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    select, input {
+      width: 100%;
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--a1);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    select option {
+      background: #0b1530;
+      color: #fff;
+    }
+
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .alert-box {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      display: none;
+      text-align: left;
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #ef4444;
+      color: #ef4444;
+    }
+
+    .alert-success {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid #22c55e;
+      color: #22c55e;
+    }
+
+    .alert-info {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+    }
+
+    .alert-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid #f59e0b;
+      color: #f59e0b;
+    }
+
+    .footer-text {
+      margin-top: 30px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.1);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .cedula-field {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .cedula-field.show {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+
+    .badge-info {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      margin-top: 4px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      color: var(--a1);
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="logo-area">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"  stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2a8 8 0 0 0-8 8c0 5 4 9 8 9s8-4 8-9a8 8 0 0 0-8-8z"/>
+        <path d="M12 2v19"/>
+        <path d="M8 10h8"/>
+        <path d="M8 14h6"/>
+    </svg>
+  </div>
+  <h1>STI <span>Bases de Datos</span></h1>
+  <div class="subtitle">Sistema Tutorial Inteligente Adaptativo</div>
+
+  <form id="loginForm" onsubmit="handleLogin(event)">
+    <div class="form-group">
+      <label for="userRole">Tipo de Usuario</label>
+      <select id="userRole" required onchange="onRoleChange()">
+        <option value="" disabled selected>Selecciona tu rol...</option>
+        <option value="docente">📋 Docente / Profesor</option>
+        <option value="estudiante">👨‍🎓 Estudiante Universitario</option>
+      </select>
+    </div>
+
+    <!-- Campo de Cédula para Estudiante -->
+    <div class="form-group cedula-field" id="cedulaGroup">
+      <label for="userCedula">Número de Cédula / ID Estudiantil</label>
+      <input type="text" id="userCedula" placeholder="Ej: 12345678" autocomplete="off">
+      <div class="badge-info">💡 Ingresa tu cédula para verificar si ya tienes un diagnóstico registrado</div>
+    </div>
+
+    <div class="form-group">
+      <label for="userPassword">Contraseña de Acceso</label>
+      <input type="password" id="userPassword" placeholder="••••••••" required>
+    </div>
+
+    <button type="submit" id="submitBtn" class="btn-login">Ingresar al Sistema</button>
+  </form>
+
+  <div id="errorConsole" class="alert-box"></div>
+
+  <div class="footer-text">
+    Instituto Universitario de Tecnología Mario Briceño Iragorry <br>  • STI V1.0
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURACIÓN
+  // ============================================================
+  const PROXY_URL = "proxy.php";
+  const SCRIPT_BASE_URL = PROXY_URL;
+  const ACTIVE_SHEET_NAME = "Datossti";
+
+  // ============================================================
+  // MAPEO DE TEMAS - NOMBRES EXACTOS QUE VIENEN DE SHEETS
+  // ============================================================
+  const TEMAS_SHEETS = {
+    "Introducción a BD": "Intro a BD (%)",
+    "Modelo Relacional": "Modelo Relacional (%)",
+    "Lenguaje SQL": "Lenguaje SQL (%)",
+    "Diseño de BD": "Diseño de BD (%)",
+    "SGBD y Herramientas": "SGBD y Herramientas (%)"
+  };
+
+  // ============================================================
+  // DOM REFERENCIAS
+  // ============================================================
+  const roleSelect = document.getElementById('userRole');
+  const cedulaInput = document.getElementById('userCedula');
+  const cedulaGroup = document.getElementById('cedulaGroup');
+  const passwordInput = document.getElementById('userPassword');
+  const submitBtn = document.getElementById('submitBtn');
+  const errorConsole = document.getElementById('errorConsole');
+
+  // ============================================================
+  // FUNCIONES
+  // ============================================================
+  
+  function onRoleChange() {
+    const role = roleSelect.value;
+    
+    if (role === 'estudiante') {
+      cedulaGroup.classList.add('show');
+      cedulaInput.required = true;
+      updateButtonColor('estudiante');
+    } else if (role === 'docente') {
+      cedulaGroup.classList.remove('show');
+      cedulaInput.required = false;
+      cedulaInput.value = '';
+      updateButtonColor('docente');
+    } else {
+      cedulaGroup.classList.remove('show');
+      cedulaInput.required = false;
+      updateButtonColor('default');
+    }
+    
+    errorConsole.style.display = 'none';
+  }
+
+  function updateButtonColor(role) {
+    if (role === 'docente') {
+      submitBtn.style.background = 'linear-gradient(135deg, var(--a3) 0%, #16a34a 100%)';
+      submitBtn.style.boxShadow = '0 4px 15px rgba(34, 197, 94, 0.3)';
+    } else if (role === 'estudiante') {
+      submitBtn.style.background = 'linear-gradient(135deg, var(--a2) 0%, #6d28d9 100%)';
+      submitBtn.style.boxShadow = '0 4px 15px rgba(139, 92, 246, 0.3)';
+    } else {
+      submitBtn.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+      submitBtn.style.boxShadow = '0 4px 15px rgba(37, 99, 235, 0.3)';
+    }
+  }
+
+  function showMessage(msg, type = 'error') {
+    errorConsole.innerHTML = msg;
+    errorConsole.className = `alert-box alert-${type}`;
+    errorConsole.style.display = 'block';
+    
+    if (type === 'error') {
+      errorConsole.style.animation = 'none';
+      setTimeout(() => {
+        errorConsole.style.animation = 'shake 0.3s';
+      }, 10);
+    }
+  }
+
+  // ============================================================
+  // FUNCIÓN PARA VERIFICAR CÉDULA EN GOOGLE SHEETS
+  // ============================================================
+  async function verificarCedulaEnSheet(cedula) {
+    const payload = {
+      action: "VERIFY_STUDENT",
+      sheetName: ACTIVE_SHEET_NAME,
+      cedula: cedula
+    };
+
+    console.log("📤 Enviando petición a:", SCRIPT_BASE_URL);
+    console.log("📦 Payload:", payload);
+
+    const response = await fetch(SCRIPT_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+
+    console.log("📥 Status HTTP:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Error:", errorText);
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("📊 Datos recibidos:", data);
+    
+    if (data.status === "success") {
+      return data;
+    } else {
+      throw new Error(data.message || "Error al verificar la cédula");
+    }
+  }
+
+  // ============================================================
+  // MANEJO DEL LOGIN
+  // ============================================================
+  async function handleLogin(event) {
+    event.preventDefault();
+
+    const role = roleSelect.value;
+    const password = passwordInput.value.trim();
+    const cedula = cedulaInput.value.trim();
+
+    errorConsole.style.display = 'none';
+
+    if (!role) {
+      showMessage('⚠️ Por favor, selecciona un tipo de usuario válido.', 'error');
+      return;
+    }
+
+    if (!password) {
+      showMessage('⚠️ Por favor, ingresa tu contraseña.', 'error');
+      return;
+    }
+
+    // ============================================================
+    // CASO: DOCENTE
+    // ============================================================
+    if (role === 'docente') {
+      if (password === 'Doc-123') {
+        showMessage('✅ Acceso concedido. Redirigiendo al panel docente...', 'success');
+        setTimeout(() => {
+          window.location.href = 'paginas/panel_docente.html';
+        }, 1000);
+      } else {
+        showMessage('❌ Contraseña incorrecta para el cuerpo Docente.', 'error');
+      }
+      return;
+    }
+
+    // ============================================================
+    // CASO: ESTUDIANTE
+    // ============================================================
+    if (role === 'estudiante') {
+      if (password !== 'Est-123') {
+        showMessage('❌ Contraseña incorrecta para el perfil Estudiante.', 'error');
+        return;
+      }
+
+      if (!cedula) {
+        showMessage('⚠️ Por favor, ingresa tu número de cédula.', 'error');
+        cedulaInput.focus();
+        return;
+      }
+
+      if (!/^\d+$/.test(cedula)) {
+        showMessage('⚠️ La cédula debe contener solo números.', 'error');
+        cedulaInput.focus();
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="loading-spinner"></span> Verificando...';
+
+      try {
+        const resultado = await verificarCedulaEnSheet(cedula);
+
+        if (resultado.exists) {
+          showMessage(`✅ ¡Bienvenido de vuelta ${resultado.nombre || 'Estudiante'}!`, 'success');
+          
+          // ============================================================
+          // GUARDAR TODOS LOS DATOS EN LOCALSTORAGE
+          // ============================================================
+          localStorage.setItem('sti_student_id', cedula);
+          localStorage.setItem('sti_student_name', resultado.nombre || '');
+          localStorage.setItem('sti_student_lastname', resultado.apellido || '');
+          localStorage.setItem('sti_student_career', resultado.carrera || '');
+          localStorage.setItem('sti_student_section', resultado.seccion || '');
+          localStorage.setItem('sti_student_score', resultado.score || '');
+          localStorage.setItem('sti_student_level', resultado.level || '');
+          
+          // ============================================================
+          // GUARDAR PUNTAJES DE LAS 5 COLUMNAS (K, L, M, N, O)
+          // Los valores vienen como números: 50.0, 100.0, 0.0, etc.
+          // ============================================================
+          if (resultado.puntajes) {
+            console.log("📊 Puntajes recibidos de Sheets:", resultado.puntajes);
+            
+            // Crear objeto para guardar todos los puntajes
+            const puntajesGuardar = {};
+            
+            // Recorrer cada tema y guardar su valor
+            Object.keys(TEMAS_SHEETS).forEach(tema => {
+              const nombreColumna = TEMAS_SHEETS[tema];
+              let valor = "0%";
+              
+              // Buscar el valor en los puntajes recibidos
+              if (resultado.puntajes[tema] !== undefined) {
+                valor = resultado.puntajes[tema];
+              } else if (resultado.puntajes[nombreColumna] !== undefined) {
+                valor = resultado.puntajes[nombreColumna];
+              } else {
+                // Buscar por coincidencia parcial
+                for (const [key, val] of Object.entries(resultado.puntajes)) {
+                  if (key.includes(tema) || tema.includes(key) || key.includes("Módulo")) {
+                    valor = val;
+                    break;
+                  }
+                }
+              }
+              
+              // Si el valor es un número, convertir a porcentaje
+              if (typeof valor === 'number' || !isNaN(parseFloat(valor))) {
+                const num = parseFloat(valor);
+                valor = num + "%";
+              }
+              
+              // Guardar en el objeto
+              puntajesGuardar[tema] = valor;
+              
+              // Guardar individualmente
+              const storageKey = `sti_score_${tema}`.replace(/ /g, '_');
+              localStorage.setItem(storageKey, valor);
+              
+              console.log(`📌 ${tema}: ${valor}`);
+            });
+            
+            // Guardar el objeto completo
+            localStorage.setItem('sti_puntajes', JSON.stringify(puntajesGuardar));
+            console.log("💾 Puntajes guardados en localStorage:", puntajesGuardar);
+          }
+
+          setTimeout(() => {
+            window.location.href = 'paginas/ruta_aprendizaje.html';
+          }, 1500);
+        } else {
+          showMessage(`📝 No se encontraron registros para la cédula ${cedula}. Serás redirigido al diagnóstico.`, 'info');
+          
+          localStorage.setItem('sti_student_id', cedula);
+          
+          setTimeout(() => {
+            window.location.href = 'paginas/bot_diagnostico_base_datos3.html';
+          }, 1500);
+        }
+      } catch (error) {
+        console.error("❌ Error al verificar cédula:", error);
+        
+        showMessage(`⚠️ No se pudo verificar la cédula. Serás redirigido al diagnóstico.`, 'warning');
+        
+        localStorage.setItem('sti_student_id', cedula);
+        setTimeout(() => {
+          window.location.href = 'paginas/bot_diagnostico_base_datos3.html';
+        }, 1500);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Ingresar al Sistema';
+      }
+    }
+  }
+
+  // ============================================================
+  // INICIALIZACIÓN
+  // ============================================================
+  document.addEventListener('DOMContentLoaded', () => {
+    submitBtn.innerHTML = 'Ingresar al Sistema';
+    submitBtn.disabled = false;
+    
+    const cedulaGuardada = localStorage.getItem('sti_student_id');
+    if (cedulaGuardada) {
+      cedulaInput.value = cedulaGuardada;
+    }
+  });
+</script>
+
+</body>
+</html>

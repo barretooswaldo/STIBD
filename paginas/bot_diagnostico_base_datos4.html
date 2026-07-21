@@ -1,0 +1,449 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bot Diagnóstico Inteligente - Base de Datos</title>
+  <style>
+    :root{
+      --bg1:#040817;
+      --bg2:#0b1530;
+      --glass:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.12);
+      --text:#eaf2ff;
+      --muted:#9db0d1;
+      --a1:#38bdf8;
+      --a2:#8b5cf6;
+      --a3:#22c55e;
+      --u1:#2563eb;
+      --u2:#06b6d4;
+      --shadow:0 20px 60px rgba(0,0,0,.45);
+      --r:26px
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter,Arial,sans-serif;
+      color:var(--text);
+      background: radial-gradient(circle at 15% 20%, rgba(56,189,248,0.15) 0%, transparent 45%), radial-gradient(circle at 85% 80%, rgba(139,92,246,0.15) 0%, transparent 45%), var(--bg1);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .chat-container{
+      width:100%;
+      max-width:850px;
+      height:85vh;
+      background:linear-gradient(135deg, var(--bg1), var(--bg2));
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      backdrop-filter:blur(20px);
+    }
+    .chat-header{
+      padding:20px 24px;
+      background:rgba(255,255,255,0.02);
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .bot-info{display:flex;align-items:center;gap:12px}
+    .bot-avatar{
+      width:42px;
+      height:42px;
+      background:linear-gradient(135deg, var(--a1), var(--a2));
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:20px;
+      box-shadow:0 0 15px rgba(56,189,248,0.4);
+    }
+    .bot-status{font-size:12px;color:var(--a1);margin-top:2px}
+    .chatbox{
+      flex:1;
+      padding:24px;
+      overflow-y:auto;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    .msg-row{display:flex;width:100%}
+    .msg-row.bot{justify-content:flex-start}
+    .msg-row.user{justify-content:flex-end}
+    .msg-bubble{
+      max-width:75%;
+      padding:14px 18px;
+      border-radius:18px;
+      font-size:15px;
+      line-height:1.5;
+    }
+    .bot .msg-bubble{
+      background:var(--glass);
+      border:1px solid var(--line);
+      border-top-left-radius:4px;
+    }
+    .user .msg-bubble{
+      background:linear-gradient(135deg, var(--u1), var(--u2));
+      border-top-right-radius:4px;
+      box-shadow:0 4px 15px rgba(37,99,235,0.2);
+    }
+    .chat-input-area{
+      padding:20px 24px;
+      background:rgba(0,0,0,0.2);
+      border-top:1px solid var(--line);
+      display:flex;
+      gap:12px;
+    }
+    .chat-input{
+      flex:1;
+      background:rgba(255,255,255,0.05);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px 18px;
+      color:#fff;
+      font-size:15px;
+      outline:none;
+      transition:all 0.3s;
+    }
+    .chat-input:focus{border-color:var(--a1);box-shadow:0 0 10px rgba(56,189,248,0.2)}
+    .send-btn{
+      background:linear-gradient(135deg, var(--a1), var(--a2));
+      border:none;
+      border-radius:14px;
+      padding:0 24px;
+      color:#fff;
+      font-weight:600;
+      cursor:pointer;
+      transition:all 0.3s;
+    }
+    .send-btn:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(139,92,246,0.4)}
+    .send-btn:disabled{background:rgba(255,255,255,0.05);color:var(--muted);cursor:not-allowed;transform:none;box-shadow:none}
+    .option-eval-btn{
+      display:block;
+      margin:10px 0;
+      padding:12px 16px;
+      width:100%;
+      text-align:left;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,0.03);
+      color:#fff;
+      font-size:14px;
+      cursor:pointer;
+      transition:all 0.2s;
+    }
+    .option-eval-btn:hover:not(:disabled){
+      background:rgba(56,189,248,0.08);
+      border-color:var(--a1);
+    }
+    .option-eval-btn:disabled{cursor:not-allowed;opacity:0.6}
+  </style>
+</head>
+<body>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="bot-info">
+        <div class="bot-avatar">🧠</div>
+        <div>
+          <div style="font-weight:600;letter-spacing:0.5px;">Sistema Tutorial Inteligente (STI)</div>
+          <div class="bot-status" id="botState">Inicializando...</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="chatbox" id="chatbox"></div>
+    
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" id="userInput" placeholder="Escribe tu respuesta..." disabled />
+      <button class="send-btn" id="sendBtn" disabled>Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    // REEMPLAZA ESTA URL CON TU NUEVO ENLACE /EXEC LUEGO DE SUBIR LA NUEVA VERSIÓN EN APPS SCRIPT
+    const SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbyhL7BAwoDtJLw6YsPMKwtYIubPno3MLPVthpAeDrRyoS_lwI8DOr00Xw58wGi90aaHiQ/exec"; 
+    const ACTIVE_SHEET_NAME = localStorage.getItem('sti_active_sheet_name') || "Resultados_STI";
+
+    const MODULOS_STI = [
+      { id: "Módulo 1: Introducción a las Bases de Datos", clave: "intro" },
+      { id: "Módulo 2: Diseño de Bases de Datos", clave: "relacional" },
+      { id: "Módulo 3: Administración de Bases de Datos", clave: "sql" },
+      { id: "Módulo 4: Optimización de Bases de Datos", clave: "diseno" },
+      { id: "Módulo 5: Herramientas y Tecnologías", clave: "tools" }
+    ];
+
+    let currentModuloIndex = 0;
+    let preguntasRespondidasPorModulo = 0;
+    const MAX_PREGUNTAS_POR_MODULO = 2; 
+    let historialModuloActual = []; 
+
+    let currentProfileStep = 0; 
+    let puntajeFinal = 0;
+    let fechaInicioTest = null;
+    
+    const usuarioRegistro = { nombre: "", apellido: "", carrera: "", seccion: "", cedula: "" };
+    const subPuntajes = { intro: 0, relacional: 0, sql: 0, diseno: 0, herramientas: 0 };
+    let desafioActualGemini = null;
+
+    const chatbox = document.getElementById('chatbox');
+    const input = document.getElementById('userInput');
+    const send = document.getElementById('sendBtn');
+    const state = document.getElementById('botState');
+
+    window.addEventListener('DOMContentLoaded', () => {
+      iniciarProcesoRegistro();
+    });
+
+    function scrollBottom() { chatbox.scrollTop = chatbox.scrollHeight; }
+
+    function row(text, type) {
+      const msgRow = document.createElement('div');
+      msgRow.className = `msg-row ${type}`;
+      msgRow.innerHTML = `<div class="msg-bubble">${text}</div>`;
+      chatbox.appendChild(msgRow);
+    }
+
+    function iniciarProcesoRegistro() {
+      currentProfileStep = 1;
+      state.textContent = 'Registro Perfil...';
+      row('¡Bienvenido al Módulo de Diagnóstico Inteligente! Para inicializar tu perfil y trazar tu ruta adaptativa, requerimos tus datos de identificación.', 'bot');
+      setTimeout(() => {
+        row('Por favor, ingresa tu **Primer Nombre**:', 'bot');
+        input.placeholder = 'Escribe tu nombre...';
+        input.disabled = false;
+        send.disabled = false;
+        input.focus();
+      }, 600);
+    }
+
+    send.addEventListener('click', procesarEntradaTexto);
+    input.addEventListener('keypress', (e) => { if(e.key === 'Enter') procesarEntradaTexto(); });
+
+    function procesarEntradaTexto() {
+      const valor = input.value.trim();
+      if(!valor) return;
+
+      row(valor, 'user');
+      input.value = "";
+
+      if (currentProfileStep > 0) {
+        switch(currentProfileStep) {
+          case 1:
+            usuarioRegistro.nombre = valor;
+            currentProfileStep = 2;
+            row('Perfecto. Ahora ingresa tu **Primer Apellido**:', 'bot');
+            break;
+          case 2:
+            usuarioRegistro.apellido = valor;
+            currentProfileStep = 3;
+            row('Indica la **Carrera** a la cual perteneces:', 'bot');
+            break;
+          case 3:
+            usuarioRegistro.carrera = valor;
+            currentProfileStep = 4;
+            row('Ingresa tu **Sección** académica:', 'bot');
+            break;
+          case 4:
+            usuarioRegistro.seccion = valor;
+            currentProfileStep = 5;
+            row('Finalmente, introduce tu **Número de Cédula o ID Estudiantil**:', 'bot');
+            break;
+          case 5:
+            usuarioRegistro.cedula = valor;
+            currentProfileStep = 0; 
+            localStorage.setItem('sti_student_id', usuarioRegistro.cedula);
+            row(`¡Registro Exitoso! Bienvenido **${usuarioRegistro.nombre} ${usuarioRegistro.apellido}**. Hemos vinculado tus datos para procesar tus notas de forma automatizada en el libro virtual.`, 'bot');
+            
+            fechaInicioTest = new Date();
+            setTimeout(ejecutarSiguienteEjeDiagnostico, 1500);
+            break;
+        }
+        scrollBottom();
+      }
+    }
+
+    function ejecutarSiguienteEjeDiagnostico() {
+      if (currentModuloIndex < MODULOS_STI.length) {
+        if (preguntasRespondidasPorModulo >= MAX_PREGUNTAS_POR_MODULO) {
+          preguntasRespondidasPorModulo = 0;
+          historialModuloActual = []; 
+          currentModuloIndex++;
+          ejecutarSiguienteEjeDiagnostico();
+          return;
+        }
+
+        const moduloActual = MODULOS_STI[currentModuloIndex];
+        state.textContent = `Evaluando Módulo ${currentModuloIndex + 1}/5 (Desafío ${preguntasRespondidasPorModulo + 1}/${MAX_PREGUNTAS_POR_MODULO})`;
+        
+        input.disabled = true;
+        send.disabled = true;
+        input.placeholder = "Selecciona una opción del desafío...";
+
+        row(`🤖 *Analizando tus vectores de rendimiento para extraer un reactivo del ${moduloActual.id}...*`, 'bot');
+        scrollBottom();
+
+        const payload = {
+          action: "GENERATE_CHALLENGE",
+          moduloId: moduloActual.id,
+          history: historialModuloActual
+        };
+
+        fetch(SCRIPT_BASE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(payload)
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("Fallo crítico en los canales físicos de red de la Web App.");
+          return res.json();
+        })
+        .then(data => {
+          if (data && data.status === "success") {
+            if (data.challenge && data.challenge.q && data.challenge.options) {
+              desafioActualGemini = data.challenge;
+              presentarDesafioEnChat(desafioActualGemini);
+            } else {
+              throw new Error("El objeto JSON de la pregunta vino incompleto o sin parámetros 'q'/'options'.");
+            }
+          } else if (data && data.status === "error") {
+            throw new Error(data.message); 
+          } else {
+            throw new Error("Respuesta ilegible de Google Script.");
+          }
+        })
+        .catch(err => {
+          console.error("Detalle técnico del error:", err);
+          row(`⚠️ **Aviso del STI:** Ocurrió un inconveniente estructural en la API (${err.message}). Ejecutando reactivo modular de contingencia inmediata...`, 'bot');
+          
+          desafioActualGemini = {
+            q: `Con respecto al temario global del ${moduloActual.id}, ¿cuál es un objetivo primordial de su correcta aplicación en software profesional?`,
+            options: [
+              { t: "Garantizar la integridad, seguridad y eficiencia en el acceso a los datos corporativos.", f: "Excelente. Es el pilar del contenido programático.", c: true },
+              { t: "Fomentar la redundancia descontrolada de datos.", f: "Incorrecto. La redundancia excesiva genera graves anomalías de actualización.", c: false },
+              { t: "Omitir las restricciones de integridad física.", f: "Falso. Sin restricciones el diseño físico pierde consistencia.", c: false }
+            ]
+          };
+          presentarDesafioEnChat(desafioActualGemini);
+        });
+
+      } else {
+        finalizarEvaluacionDiagnostica();
+      }
+    }
+
+    function presentarDesafioEnChat(desafio) {
+      const contenedorPregunta = document.createElement('div');
+      contenedorPregunta.className = 'msg-row bot';
+      
+      let htmlContenido = `<div class="msg-bubble"><strong>Módulo N° ${currentModuloIndex + 1}: ${MODULOS_STI[currentModuloIndex].id}</strong><br><br>${desafio.q}<br><br>`;
+      
+      desafio.options.forEach((opcion, index) => {
+        htmlContenido += `<button class="option-eval-btn" onclick="evaluarRespuestaSeleccionada(${index})">
+          <strong>${String.fromCharCode(65 + index)})</strong> ${opcion.t}
+        </button>`;
+      });
+      
+      htmlContenido += `</div>`;
+      contenedorPregunta.innerHTML = htmlContenido;
+      chatbox.appendChild(contenedorPregunta);
+      scrollBottom();
+    }
+
+    function evaluarRespuestaSeleccionada(indexSeleccionado) {
+      const botones = document.querySelectorAll('.option-eval-btn');
+      botones.forEach(btn => btn.disabled = true);
+
+      const opcion = desafioActualGemini.options[indexSeleccionado];
+      const esCorrecta = (opcion.c === true || opcion.c === "true");
+
+      historialModuloActual.push({
+        q: desafioActualGemini.q,
+        correct: esCorrecta
+      });
+
+      if (esCorrecta) {
+        puntajeFinal += 2; 
+        acumularSubPuntajeMódulo(MODULOS_STI[currentModuloIndex].clave, (100 / MAX_PREGUNTAS_POR_MODULO));
+        row(`🎉 **¡Correcto!**<br>${opcion.f}`, 'bot');
+      } else {
+        row(`❌ **Incorrecto.**<br>${opcion.f}`, 'bot');
+      }
+      scrollBottom();
+
+      preguntasRespondidasPorModulo++;
+      setTimeout(ejecutarSiguienteEjeDiagnostico, 4000);
+    }
+
+    function acumularSubPuntajeMódulo(clave, peso) {
+      if (clave === "intro") subPuntajes.intro += peso;
+      if (clave === "relacional") subPuntajes.relacional += peso;
+      if (clave === "sql") subPuntajes.sql += peso;
+      if (clave === "diseno") subPuntajes.diseno += peso;
+      if (clave === "tools") subPuntajes.tools += peso;
+    }
+
+    function calcularNivelSTI(score) {
+      if (score <= 8) return "Básico (Requiere Refuerzo Práctico)";
+      if (score <= 16) return "Intermedio (Ruta Temática Estándar)";
+      return "Avanzado (Exención de Componentes Básicos)";
+    }
+
+    function finalizarEvaluacionDiagnostica() {
+      state.textContent = 'Guardando...';
+      row('📊 **Diagnóstico Finalizado**. Computando tus vectores métricos y asentando las calificaciones en el libro centralizado de la cátedra...', 'bot');
+      scrollBottom();
+
+      const formData = {
+        action: "SAVE_STUDENT_PERFORMANCE",
+        sheetName: ACTIVE_SHEET_NAME,
+        id: usuarioRegistro.cedula,
+        name: usuarioRegistro.nombre,
+        lastname: usuarioRegistro.apellido,
+        career: usuarioRegistro.carrera,
+        section: usuarioRegistro.seccion,
+        score: puntajeFinal,
+        level: calcularNivelSTI(puntajeFinal),
+        startedAt: fechaInicioTest.toISOString(),
+        endedAt: new Date().toISOString(),
+        introScore: subPuntajes.intro,
+        relScore: subPuntajes.relacional,
+        sqlScore: subPuntajes.sql,
+        designScore: subPuntajes.diseno,
+        toolsScore: subPuntajes.tools
+      };
+
+      fetch(SCRIPT_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(res => {
+        if(res.status === "success") {
+          row(`✅ **Registro Exitoso**. Tu rendimiento ha sido guardado de forma permanente en la pestaña **${ACTIVE_SHEET_NAME}**.`, 'bot');
+          row(`Tu nivel determinado en el STI es: **${formData.level}** con una calificación proyectada de **${puntajeFinal} / 20**. Puedes cerrar esta pestaña con seguridad.`, 'bot');
+          state.textContent = 'Sincronizado';
+        } else {
+          throw new Error();
+        }
+        scrollBottom();
+      })
+      .catch(err => {
+        console.error(err);
+        row('⚠️ Error técnico en los canales de comunicación de red al insertar la fila. Por favor, realiza una captura de pantalla como resguardo físico de tu nota.', 'bot');
+        row(`**EVIDENCIA MANUAL DE CALIFICACIÓN:** Cédula: ${usuarioRegistro.cedula} | Score: ${puntajeFinal}/20 | Nivel: ${calcularNivelSTI(puntajeFinal)}`, 'bot');
+        state.textContent = 'Error de Red';
+        scrollBottom();
+      });
+    }
+  </script>
+</body>
+</html>

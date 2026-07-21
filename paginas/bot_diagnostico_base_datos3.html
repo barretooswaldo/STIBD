@@ -1,0 +1,981 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bot Diagnóstico Inteligente - Base de Datos</title>
+  <style>
+    :root{
+      --bg1:#0b280a;
+      --bg2:#1a450e;
+      --glass:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.12);
+      --text:#eaf2ff;
+      --muted:#9db0d1;
+      --a1:#38bdf8;
+      --a2:#8b5cf6;
+      --a3:#22c55e;
+      --u1:#2563eb;
+      --u2:#06b6d4;
+      --shadow:0 20px 60px rgba(0,0,0,.45);
+      --r:26px
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter,Arial,sans-serif;
+      color:var(--text);
+      background: radial-gradient(circle at 15% 20%, rgba(56,189,248,0.15) 0%, transparent 45%), radial-gradient(circle at 85% 80%, rgba(139,92,246,0.15) 0%, transparent 45%), var(--bg1);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .chat-container{
+      width:100%;
+      max-width:850px;
+      height:85vh;
+      background:linear-gradient(135deg, var(--bg1), var(--bg2));
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      backdrop-filter:blur(20px);
+    }
+    .chat-header{
+      padding:20px 24px;
+      background:rgba(255,255,255,0.02);
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .bot-info{display:flex;align-items:center;gap:12px}
+    .bot-avatar{
+      width:42px;
+      height:42px;
+      background:linear-gradient(135deg, var(--a1), var(--a2));
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:20px;
+      box-shadow:0 0 15px rgba(56,189,248,0.4);
+    }
+    .bot-status{font-size:12px;color:var(--a1);margin-top:2px}
+    .topbar{
+      padding:12px 18px 0;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,0.02);
+    }
+    .topline{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      color:var(--muted);
+      font-size:.88rem;
+      margin-bottom:8px
+    }
+    .bar{
+      width:100%;
+      height:10px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:999px;
+      overflow:hidden;
+      margin-bottom:12px;
+    }
+    .bar>div{
+      height:100%;
+      width:0%;
+      border-radius:inherit;
+      background:linear-gradient(90deg,var(--a1),var(--a2));
+      transition:width .35s ease
+    }
+    .chatbox{
+      flex:1;
+      padding:24px;
+      overflow-y:auto;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    .msg-row{display:flex;width:100%}
+    .msg-row.bot{justify-content:flex-start}
+    .msg-row.user{justify-content:flex-end}
+    .msg-bubble{
+      max-width:75%;
+      padding:14px 18px;
+      border-radius:18px;
+      font-size:15px;
+      line-height:1.5;
+    }
+    .bot .msg-bubble{
+      background:var(--glass);
+      border:1px solid var(--line);
+      border-top-left-radius:4px;
+    }
+    .user .msg-bubble{
+      background:linear-gradient(135deg, var(--u1), var(--u2));
+      border-top-right-radius:4px;
+      box-shadow:0 4px 15px rgba(37,99,235,0.2);
+    }
+    .chat-input-area{
+      padding:20px 24px;
+      background:rgba(0,0,0,0.2);
+      border-top:1px solid var(--line);
+      display:flex;
+      gap:12px;
+    }
+    .chat-input{
+      flex:1;
+      background:rgba(255,255,255,0.05);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px 18px;
+      color:#fff;
+      font-size:15px;
+      outline:none;
+      transition:all 0.3s;
+    }
+    .chat-input:focus{border-color:var(--a1);box-shadow:0 0 10px rgba(56,189,248,0.2)}
+    .chat-input:disabled{opacity:0.5;cursor:not-allowed}
+    .send-btn{
+      background:linear-gradient(135deg, var(--a1), var(--a2));
+      border:none;
+      border-radius:14px;
+      padding:0 24px;
+      color:#fff;
+      font-weight:600;
+      cursor:pointer;
+      transition:all 0.3s;
+    }
+    .send-btn:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(139,92,246,0.4)}
+    .send-btn:disabled{background:rgba(255,255,255,0.05);color:var(--muted);cursor:not-allowed;transform:none;box-shadow:none}
+    .option-eval-btn{
+      display:block;
+      margin:10px 0;
+      padding:12px 16px;
+      width:100%;
+      text-align:left;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,0.03);
+      color:#fff;
+      font-size:14px;
+      cursor:pointer;
+      transition:all 0.2s;
+    }
+    .option-eval-btn:hover:not(:disabled){
+      background:rgba(56,189,248,0.08);
+      border-color:var(--a1);
+    }
+    .option-eval-btn:disabled{cursor:not-allowed;opacity:0.6}
+    .summary{display:grid;gap:12px;margin-top:12px}
+    .sum-card{
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px
+    }
+    .sum-card h3{margin:0 0 8px;font-size:1rem}
+    .topic{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      margin:8px 0;
+      color:#dbeafe;
+      font-size:.94rem
+    }
+    .meter{
+      height:8px;
+      background:rgba(255,255,255,.08);
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.06)
+    }
+    .meter>div{
+      height:100%;
+      border-radius:inherit;
+      background:linear-gradient(90deg,var(--a1),var(--a3))
+    }
+    .result{
+      display:grid;
+      gap:14px;
+      margin-top:12px
+    }
+    .result-card{
+      background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.05));
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:18px
+    }
+    .result-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .badge{
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(56,189,248,.12);
+      border:1px solid rgba(56,189,248,.18);
+      color:#9be7ff
+    }
+    .scorebig{font-size:2rem;font-weight:800}
+    .mini{color:var(--muted);font-size:.92rem;line-height:1.6}
+    .avatarWrap{display:flex;align-items:center;gap:12px}
+    .avatar{
+      width:54px;
+      height:54px;
+      border-radius:18px;
+      background:linear-gradient(135deg,var(--a1),var(--a2));
+      display:grid;
+      place-items:center;
+      color:#fff;
+      flex:0 0 auto
+    }
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px
+    }
+    .action{
+      border:none;
+      cursor:pointer;
+      padding:12px 14px;
+      border-radius:14px;
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      border:1px solid var(--line);
+      transition:all 0.2s;
+    }
+    .action:hover{
+      background:rgba(255,255,255,.12);
+      transform:translateY(-1px);
+    }
+    .action-primary{
+      background:linear-gradient(135deg, var(--a2), #6d28d9);
+      color:#fff;
+      font-weight:bold;
+      border:none;
+      box-shadow:0 4px 12px rgba(139,92,246,0.3);
+    }
+    .action-primary:hover{
+      box-shadow:0 6px 20px rgba(139,92,246,0.4);
+      transform:translateY(-2px);
+    }
+    .typing{
+      display:inline-flex;
+      gap:5px;
+      align-items:center;
+      padding:12px 15px;
+      border-radius:18px;
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      width:max-content;
+      margin:12px 0 0
+    }
+    .typing span{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#cbd5e1;
+      opacity:.55;
+      animation:bounce 1s infinite ease-in-out
+    }
+    .typing span:nth-child(2){animation-delay:.15s}
+    .typing span:nth-child(3){animation-delay:.3s}
+    .choices{
+      display:grid;
+      gap:10px;
+      margin-top:12px
+    }
+
+    .btn-home {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 1.2rem;
+    }
+
+    .btn-home:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--a1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
+    }
+    .btn-home svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-5px);opacity:1}}
+  </style>
+</head>
+<body>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="bot-info">
+        <div class="bot-avatar">🧠</div>
+        <div>
+          <div style="font-weight:600;letter-spacing:0.5px;">Sistema Tutorial Inteligente (STI)
+            <a href="../index.html" class="btn-home" title="Volver al inicio">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/>
+              </svg>
+            </a>
+          </div>
+          <div class="bot-status" id="botState">Inicializando...</div>
+                <!-- Botón para volver al index -->
+  
+
+        </div>
+      </div>
+    </div>
+
+    <div class="topbar">
+      <div class="topline">
+        <span id="progText">Progreso: 0%</span>
+        <span id="stepText">Pregunta 0 de 20</span>
+      </div>
+      <div class="bar"><div id="barFill"></div></div>
+    </div>
+    
+    <div class="chatbox" id="chatbox"></div>
+    
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" id="userInput" placeholder="Escribe tu respuesta..." disabled />
+      <button class="send-btn" id="sendBtn" disabled>Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    
+    // ============================================================
+    // CONFIGURACIÓN - API GEMINI
+    // ============================================================
+    const SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbyhL7BAwoDtJLw6YsPMKwtYIubPno3MLPVthpAeDrRyoS_lwI8DOr00Xw58wGi90aaHiQ/exec";
+    const ACTIVE_SHEET_NAME = localStorage.getItem('sti_active_sheet_name') || "Resultados_STI" || "Datossti";
+    const TOTAL_PREGUNTAS = 20;
+
+    const MODULOS_STI = [
+      { id: "Módulo 1: Introducción a las Bases de Datos", clave: "intro" },
+      { id: "Módulo 2: Diseño de Bases de Datos", clave: "relacional" },
+      { id: "Módulo 3: Administración de Bases de Datos", clave: "sql" },
+      { id: "Módulo 4: Optimización de Bases de Datos", clave: "diseno" },
+      { id: "Módulo 5: Herramientas y Tecnologías", clave: "tools" }
+    ];
+
+    // ============================================================
+    // ESTADO GLOBAL
+    // ============================================================
+    const db = {
+      student: { name: '', lastname: '', id: '', career: '', section: '' },
+      answers: [],
+      themes: {
+        "intro": { score: 0, total: 0, nombre: "Introducción a BD" },
+        "relacional": { score: 0, total: 0, nombre: "Modelo Relacional" },
+        "sql": { score: 0, total: 0, nombre: "Lenguaje SQL" },
+        "diseno": { score: 0, total: 0, nombre: "Diseño de BD" },
+        "tools": { score: 0, total: 0, nombre: "SGBD y Herramientas" }
+      },
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      score: 0,
+      level: ''
+    };
+
+    let currentModuloIndex = 0;
+    let preguntasRespondidasPorModulo = 0;
+    const MAX_PREGUNTAS_POR_MODULO = 4; // 5 módulos x 4 = 20 preguntas
+    let historialModuloActual = [];
+    let currentProfileStep = 0;
+    let desafioActualGemini = null;
+    let soundOn = true;
+
+    // ============================================================
+    // DOM REFERENCIAS
+    // ============================================================
+    const chatbox = document.getElementById('chatbox');
+    const input = document.getElementById('userInput');
+    const send = document.getElementById('sendBtn');
+    const state = document.getElementById('botState');
+    const barFill = document.getElementById('barFill');
+    const progText = document.getElementById('progText');
+    const stepText = document.getElementById('stepText');
+
+    // ============================================================
+    // AUDIO
+    // ============================================================
+    const audioCtx = window.AudioContext ? new AudioContext() : null;
+
+    function tone(f, d = 0.08, g = .04, t = 'sine') {
+      if (!soundOn || !audioCtx) return;
+      const o = audioCtx.createOscillator(), x = audioCtx.createGain();
+      o.type = t; o.frequency.value = f; x.gain.value = g; o.connect(x); x.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + d);
+    }
+    function okSound() { tone(660, .07, .035, 'sine'); setTimeout(() => tone(880, .08, .035, 'sine'), 80); }
+    function badSound() { tone(220, .11, .05, 'sawtooth'); }
+    function clickSound() { tone(520, .04, .02, 'triangle'); }
+
+    // ============================================================
+    // UTILIDADES
+    // ============================================================
+    function scrollBottom() { chatbox.scrollTop = chatbox.scrollHeight; }
+
+    function row(text, who = 'bot', html = false) {
+      const r = document.createElement('div');
+      r.className = `msg-row ${who}`;
+      const b = document.createElement('div');
+      b.className = 'msg-bubble';
+      if (html) b.innerHTML = text;
+      else b.textContent = text;
+      r.appendChild(b);
+      chatbox.appendChild(r);
+      scrollBottom();
+    }
+
+    function typing() {
+      const r = document.createElement('div');
+      r.className = 'msg-row bot';
+      r.id = 'typing';
+      const t = document.createElement('div');
+      t.className = 'typing';
+      t.innerHTML = '<span></span><span></span><span></span>';
+      r.appendChild(t);
+      chatbox.appendChild(r);
+      scrollBottom();
+    }
+
+    function rmTyping() {
+      const t = document.getElementById('typing');
+      if (t) t.remove();
+    }
+
+    function setProgress() {
+      const totalRespondidas = currentModuloIndex * MAX_PREGUNTAS_POR_MODULO + preguntasRespondidasPorModulo;
+      const p = Math.round((totalRespondidas / TOTAL_PREGUNTAS) * 100);
+      barFill.style.width = `${p}%`;
+      progText.textContent = `Progreso: ${p}%`;
+      stepText.textContent = `Pregunta ${Math.min(totalRespondidas + 1, TOTAL_PREGUNTAS)} de ${TOTAL_PREGUNTAS}`;
+    }
+
+    function themePct(clave) {
+      const x = db.themes[clave];
+      if (!x || !x.total) return 0;
+      return Math.round((x.score / x.total) * 100);
+    }
+
+    function getNombreTema(clave) {
+      const map = {
+        'intro': 'Introducción a BD',
+        'relacional': 'Modelo Relacional',
+        'sql': 'Lenguaje SQL',
+        'diseno': 'Diseño de BD',
+        'tools': 'SGBD y Herramientas'
+      };
+      return map[clave] || clave;
+    }
+
+    // ============================================================
+    // REGISTRO DE PERFIL
+    // ============================================================
+    function iniciarProcesoRegistro() {
+      currentProfileStep = 1;
+      state.textContent = 'Registro Perfil...';
+      row('¡Bienvenido al Módulo de Diagnóstico Inteligente! Para inicializar tu perfil y trazar tu ruta adaptativa, requerimos tus datos de identificación.', 'bot');
+      setTimeout(() => {
+        row('Por favor, ingresa tu **Primer Nombre**:', 'bot');
+        input.placeholder = 'Escribe tu nombre...';
+        input.disabled = false;
+        send.disabled = false;
+        input.focus();
+      }, 600);
+    }
+
+    function manejarRegistroPerfil(v) {
+      clickSound();
+      switch(currentProfileStep) {
+        case 1:
+          db.student.name = v;
+          currentProfileStep = 2;
+          row('Perfecto. Ahora ingresa tu **Primer Apellido**:', 'bot');
+          break;
+        case 2:
+          db.student.lastname = v;
+          currentProfileStep = 3;
+          row('Indica la **Carrera** a la cual perteneces:', 'bot');
+          break;
+        case 3:
+          db.student.career = v;
+          currentProfileStep = 4;
+          row('Ingresa tu **Sección** académica:', 'bot');
+          break;
+        case 4:
+          db.student.section = v;
+          currentProfileStep = 5;
+          row('Finalmente, introduce tu **Número de Cédula o ID Estudiantil**:', 'bot');
+          break;
+        case 5:
+          db.student.id = v;
+          currentProfileStep = 6;
+          localStorage.setItem('sti_student_id', db.student.id);
+          state.textContent = 'En línea';
+          row(`¡Registro Exitoso! Bienvenido **${db.student.name} ${db.student.lastname}**. He seleccionado de forma aleatoria 20 preguntas del banco general para evaluar tu nivel cognitivo en Bases de Datos. ¡Iniciamos!`, 'bot');
+          setTimeout(ejecutarSiguienteEjeDiagnostico, 1500);
+          break;
+      }
+    }
+
+    // ============================================================
+    // OBTENER PREGUNTA DE GEMINI
+    // ============================================================
+    function ejecutarSiguienteEjeDiagnostico() {
+      if (currentModuloIndex < MODULOS_STI.length) {
+        if (preguntasRespondidasPorModulo >= MAX_PREGUNTAS_POR_MODULO) {
+          preguntasRespondidasPorModulo = 0;
+          historialModuloActual = [];
+          currentModuloIndex++;
+          ejecutarSiguienteEjeDiagnostico();
+          return;
+        }
+
+        const moduloActual = MODULOS_STI[currentModuloIndex];
+        const totalRespondidas = currentModuloIndex * MAX_PREGUNTAS_POR_MODULO + preguntasRespondidasPorModulo + 1;
+        state.textContent = `Evaluando Módulo ${currentModuloIndex + 1}/5 (Pregunta ${totalRespondidas}/${TOTAL_PREGUNTAS})`;
+        
+        input.disabled = true;
+        send.disabled = true;
+        input.placeholder = "Selecciona una opción del desafío...";
+
+        typing();
+        row(`🤖 *Analizando tus vectores de rendimiento para extraer una pregunta del ${moduloActual.id}...*`, 'bot');
+        scrollBottom();
+
+        const payload = {
+          action: "GENERATE_CHALLENGE",
+          moduloId: moduloActual.id,
+          history: historialModuloActual
+        };
+
+        fetch(SCRIPT_BASE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(payload)
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("Fallo crítico en los canales físicos de red de la Web App.");
+          return res.json();
+        })
+        .then(data => {
+          rmTyping();
+          if (data && data.status === "success") {
+            if (data.challenge && data.challenge.q && data.challenge.options) {
+              desafioActualGemini = data.challenge;
+              presentarDesafioEnChat(desafioActualGemini, totalRespondidas);
+            } else {
+              throw new Error("El objeto JSON de la pregunta vino incompleto o sin parámetros 'q'/'options'.");
+            }
+          } else if (data && data.status === "error") {
+            throw new Error(data.message);
+          } else {
+            throw new Error("Respuesta ilegible de Google Script.");
+          }
+        })
+        .catch(err => {
+          rmTyping();
+          console.error("Detalle técnico del error:", err);
+          row(`⚠️ **Aviso del STI:** Ocurrió un inconveniente estructural en la API (${err.message}). Ejecutando pregunta de contingencia...`, 'bot');
+          
+          desafioActualGemini = generarPreguntaContingencia(moduloActual.clave);
+          presentarDesafioEnChat(desafioActualGemini, totalRespondidas);
+        });
+
+      } else {
+        finalizarEvaluacion();
+      }
+    }
+
+    // ============================================================
+    // PREGUNTAS DE CONTINGENCIA (cuando Gemini falla)
+    // ============================================================
+    function generarPreguntaContingencia(clave) {
+      const preguntasBase = {
+        'intro': {
+          q: "¿Cuál es el propósito principal de un Sistema de Gestión de Bases de Datos (SGBD)?",
+          options: [
+            { t: "Gestionar y organizar datos de manera eficiente y segura", f: "Correcto. El DBMS permite almacenar, recuperar y gestionar datos de forma estructurada.", c: true },
+            { t: "Crear páginas web dinámicas", f: "Incorrecto. Eso es función de frameworks web, no de un DBMS.", c: false },
+            { t: "Editar imágenes y videos", f: "Incorrecto. Esa es función de software de edición multimedia.", c: false }
+          ]
+        },
+        'relacional': {
+          q: "¿Qué es la normalización en el diseño de bases de datos?",
+          options: [
+            { t: "Es el proceso de organizar datos para reducir redundancia y mejorar integridad", f: "Correcto. La normalización organiza los datos en tablas relacionadas para evitar duplicación.", c: true },
+            { t: "Es crear copias de seguridad de la base de datos", f: "Incorrecto. Eso es parte de la administración, no del diseño.", c: false },
+            { t: "Es optimizar consultas SQL", f: "Incorrecto. Eso es optimización, no normalización.", c: false }
+          ]
+        },
+        'sql': {
+          q: "¿Cuál es la función de GRANT y REVOKE en SQL?",
+          options: [
+            { t: "Gestionar permisos de acceso a la base de datos", f: "Correcto. GRANT otorga permisos y REVOKE los retira.", c: true },
+            { t: "Crear y eliminar tablas", f: "Incorrecto. Eso es DDL (CREATE TABLE, DROP TABLE).", c: false },
+            { t: "Insertar y eliminar registros", f: "Incorrecto. Eso es DML (INSERT, DELETE).", c: false }
+          ]
+        },
+        'diseno': {
+          q: "¿Qué técnica se usa para mejorar el rendimiento de consultas en una base de datos?",
+          options: [
+            { t: "Crear índices en columnas frecuentemente consultadas", f: "Correcto. Los índices aceleran la búsqueda de datos.", c: true },
+            { t: "Eliminar todas las restricciones de integridad", f: "Incorrecto. Eliminar restricciones compromete la integridad.", c: false },
+            { t: "Duplicar todos los datos en múltiples tablas", f: "Incorrecto. La redundancia excesiva es contraproducente.", c: false }
+          ]
+        },
+        'tools': {
+          q: "¿Cuál es una herramienta popular para el diseño visual de bases de datos?",
+          options: [
+            { t: "Lucidchart o DbSchema", f: "Correcto. Estas herramientas permiten diseñar diagramas ER visualmente.", c: true },
+            { t: "Visual Studio Code", f: "Incorrecto. VS Code es un editor de código general.", c: false },
+            { t: "Excel", f: "Incorrecto. Excel no es una herramienta de diseño de bases de datos.", c: false }
+          ]
+        }
+      };
+      
+      return preguntasBase[clave] || {
+        q: "¿Cuál es un objetivo fundamental en el diseño de bases de datos?",
+        options: [
+          { t: "Garantizar la integridad y consistencia de los datos", f: "Correcto. La integridad y consistencia son pilares del diseño.", c: true },
+          { t: "Maximizar el espacio de almacenamiento", f: "Incorrecto. El objetivo no es llenar espacio, sino organizar eficientemente.", c: false },
+          { t: "Minimizar el número de tablas", f: "Incorrecto. El número de tablas depende del diseño lógico.", c: false }
+        ]
+      };
+    }
+
+    // ============================================================
+    // PRESENTAR DESAFÍO EN CHAT
+    // ============================================================
+    function presentarDesafioEnChat(desafio, numeroPregunta) {
+      const moduloActual = MODULOS_STI[currentModuloIndex];
+      const nombreTema = getNombreTema(moduloActual.clave);
+      
+      const contenedorPregunta = document.createElement('div');
+      contenedorPregunta.className = 'msg-row bot';
+      
+      let htmlContenido = `<div class="msg-bubble">
+        <strong>📝 Pregunta ${numeroPregunta} de ${TOTAL_PREGUNTAS}</strong><br>
+        <strong>📚 Módulo: ${moduloActual.id}</strong><br><br>
+        ${desafio.q}<br><br>
+        <strong>Selecciona tu respuesta:</strong><div class="choices">`;
+      
+      desafio.options.forEach((opcion, index) => {
+        htmlContenido += `<button class="option-eval-btn" onclick="evaluarRespuestaSeleccionada(${index})">
+          <strong>${String.fromCharCode(65 + index)})</strong> ${opcion.t}
+        </button>`;
+      });
+      
+      htmlContenido += `</div></div>`;
+      contenedorPregunta.innerHTML = htmlContenido;
+      chatbox.appendChild(contenedorPregunta);
+      setProgress();
+      scrollBottom();
+    }
+
+    // ============================================================
+    // EVALUAR RESPUESTA
+    // ============================================================
+    function evaluarRespuestaSeleccionada(indexSeleccionado) {
+      clickSound();
+      
+      const botones = document.querySelectorAll('.option-eval-btn');
+      botones.forEach(btn => btn.disabled = true);
+
+      const opcion = desafioActualGemini.options[indexSeleccionado];
+      const esCorrecta = (opcion.c === true || opcion.c === "true");
+      const moduloActual = MODULOS_STI[currentModuloIndex];
+      const clave = moduloActual.clave;
+
+      // Mostrar respuesta del usuario
+      row(`${String.fromCharCode(65 + indexSeleccionado)}) ${opcion.t}`, 'user');
+
+      historialModuloActual.push({
+        q: desafioActualGemini.q,
+        correct: esCorrecta
+      });
+
+      // Registrar en estadísticas
+      db.themes[clave].total += 1;
+      if (esCorrecta) {
+        db.score += 1;
+        db.themes[clave].score += 1;
+        okSound();
+        row(`✅ **¡Correcto!** ${opcion.f}`, 'bot');
+      } else {
+        badSound();
+        row(`❌ **Incorrecto.** ${opcion.f}`, 'bot');
+      }
+
+      db.answers.push({
+        theme: clave,
+        question: desafioActualGemini.q,
+        answer: opcion.t,
+        correct: esCorrecta,
+        ts: new Date().toISOString()
+      });
+
+      scrollBottom();
+      preguntasRespondidasPorModulo++;
+      setProgress();
+      
+      setTimeout(ejecutarSiguienteEjeDiagnostico, 3000);
+    }
+
+    // ============================================================
+    // GENERAR PLAN DE RUTA
+    // ============================================================
+    function generarPlanDeRuta(nivel) {
+      let htmlPlan = `<div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                        <h4 style="margin:0 0 8px; color:var(--a1);">🗺️ Ruta Adaptativa para el Estudiante:</h4>
+                        <ul style="margin:0; padding-left:20px; font-size:0.88rem; color:var(--muted); line-height:1.6;">`;
+      
+      const pctIntro = themePct('intro');
+      const pctRel = themePct('relacional');
+      const pctSql = themePct('sql');
+      const pctDis = themePct('diseno');
+      const pctTools = themePct('tools');
+
+      if (nivel === 'Básico') {
+        htmlPlan += `<li><strong>Nivelación Obligatoria:</strong> Repasar conceptos del Módulo 1 (Arquitectura ANSI-SPARC e Independencia de Datos).</li>`;
+        htmlPlan += `<li><strong>Refuerzo Lógico:</strong> Ejercicios guiados de Transformación de MER a tablas relacionales antes de utilizar código.</li>`;
+      } else if (nivel === 'Intermedio') {
+        if (pctRel < 75 || pctDis < 75) {
+          htmlPlan += `<li><strong>Eje de Diseño:</strong> Reforzar las Formas Normales (1FN a 3FN) y Dependencias Transitivas para mitigar anomalías.</li>`;
+        }
+        if (pctSql < 75) {
+          htmlPlan += `<li><strong>Eje Sintáctico:</strong> Prácticas intensivas de consultas multitabla empleando Cláusulas JOIN y Funciones de Agregación.</li>`;
+        }
+        htmlPlan += `<li><strong>Avance Secuencial:</strong> Autorizado para iniciar laboratorios del Módulo 5 (MySQL) y Módulo 6 (PostgreSQL).</li>`;
+      } else {
+        htmlPlan += `<li><strong>Fase Avanzada Directa:</strong> Exención de contenidos descriptivos básicos. Foco en optimización física de consultas y planes de ejecución.</li>`;
+        htmlPlan += `<li><strong>Lógica Procedimental:</strong> Desarrollo avanzado de Triggers y automatización de lógica interna mediante funciones en PL/pgSQL.</li>`;
+      }
+      
+      htmlPlan += `</ul></div>`;
+      return htmlPlan;
+    }
+
+    // ============================================================
+    // FINALIZAR EVALUACIÓN
+    // ============================================================
+    function finalizarEvaluacion() {
+      db.endedAt = new Date().toISOString();
+      
+      let level = 'Básico';
+      if (db.score >= 16) level = 'Avanzado';
+      else if (db.score >= 10) level = 'Intermedio';
+      db.level = level;
+
+      state.textContent = 'Completado';
+      barFill.style.width = '100%';
+      progText.textContent = 'Progreso: 100%';
+      stepText.textContent = 'Diagnóstico Concluido';
+      
+      input.disabled = true;
+      send.disabled = true;
+      input.placeholder = 'Evaluación completada con éxito';
+
+      row(`📊 **Evaluación Diagnóstica Finalizada**\n\n🎯 Puntaje Obtenido: **${db.score} / ${TOTAL_PREGUNTAS}** aciertos.\n🏆 Ubicación en el Sistema: **Nivel ${level}**`, 'bot');
+
+      // Resumen por temas
+      const temas = [
+        { clave: 'intro', nombre: 'Introducción a BD' },
+        { clave: 'relacional', nombre: 'Modelo Relacional' },
+        { clave: 'sql', nombre: 'Lenguaje SQL' },
+        { clave: 'diseno', nombre: 'Diseño de BD' },
+        { clave: 'tools', nombre: 'SGBD y Herramientas' }
+      ];
+      
+      let htmlResumen = '<div class="result-card"><strong>📈 Perfil Técnico y Cognitivo del Estudiante</strong><div class="summary">';
+      
+      temas.forEach(t => {
+        const p = themePct(t.clave);
+        htmlResumen += `<div class="sum-card">
+                          <div class="topic"><span>${t.nombre}</span><strong>${p}%</strong></div>
+                          <div class="meter"><div style="width:${p}%"></div></div>
+                        </div>`;
+      });
+      
+      htmlResumen += `</div></div>`;
+
+      // Tarjeta de resultado
+      htmlResumen += `
+        <div class="result-card">
+          <div class="result-head">
+            <div class="avatarWrap">
+              <div class="avatar">🧠</div>
+              <div>
+                <div class="scorebig">${db.score} / 20</div>
+                <div class="mini">Ubicación: <strong>${level}</strong> • ${db.student.name} ${db.student.lastname}</div>
+                <div class="mini" style="font-size:0.75rem;">C.I.: ${db.student.id} | Carrera: ${db.student.career} | Secc: ${db.student.section}</div>
+              </div>
+            </div>
+            <div class="badge">Módulo STI</div>
+          </div>
+          ${generarPlanDeRuta(level)}
+        </div>
+      `;
+
+      // Botones de acción
+      htmlResumen += `
+        <div class="actions" style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="action action-primary" id="routeBtn">
+            🔀 Acceder a mi Ruta de Aprendizaje
+          </button>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="action" id="saveBtn">💾 Descargar Evidencia JSON</button>
+            <button class="action" id="copyBtn">📋 Copiar Resumen</button>
+          </div>
+          <button class="action" id="soundBtn">🔊 Sonido: ON</button>
+        </div>
+      `;
+
+      const contenedorResumen = document.createElement('div');
+      contenedorResumen.className = 'msg-row bot';
+      contenedorResumen.innerHTML = `<div class="msg-bubble">${htmlResumen}</div>`;
+      chatbox.appendChild(contenedorResumen);
+      scrollBottom();
+
+      // ============================================================
+      // EVENTOS DE BOTONES
+      // ============================================================
+      
+      document.getElementById('routeBtn').onclick = () => {
+        window.location.href = 'ruta_aprendizaje.html';
+      };
+
+      document.getElementById('saveBtn').onclick = () => {
+        const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Evidencia_Cognitiva_STI_${db.student.id || 'estudiante'}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      };
+
+      document.getElementById('copyBtn').onclick = async () => {
+        const txt = `ESTUDIANTE: ${db.student.name} ${db.student.lastname}\nC.I: ${db.student.id}\nCARRERA: ${db.student.career} | SECCIÓN: ${db.student.section}\nRENDIMIENTO GENERAL: ${db.score}/20\nNIVEL STI: ${db.level}\n--- DIAGNÓSTICO POR EJES TEMÁTICOS ---\nIntroducción a BD: ${themePct('intro')}%\nModelo Relacional: ${themePct('relacional')}%\nLenguaje SQL: ${themePct('sql')}%\nDiseño de BD: ${themePct('diseno')}%\nSGBD y Herramientas: ${themePct('tools')}%`;
+        try {
+          await navigator.clipboard.writeText(txt);
+          row('✓ Datos estructurados copiados al portapapeles con éxito.', 'bot');
+        } catch(e) {
+          row('⚠️ Error al copiar. Por favor, extraiga el resumen de manera manual.', 'bot');
+        }
+      };
+
+      document.getElementById('soundBtn').onclick = function() {
+        soundOn = !soundOn;
+        this.textContent = soundOn ? "🔊 Sonido: ON" : "🔇 Sonido: OFF";
+      };
+
+      // ============================================================
+      // ENVÍO A GOOGLE SHEETS
+      // ============================================================
+      if (SCRIPT_BASE_URL) {
+        state.textContent = 'Sincronizando...';
+        
+        const formData = {
+          action: "SAVE_STUDENT_PERFORMANCE",
+          sheetName: ACTIVE_SHEET_NAME,
+          id: db.student.id,
+          name: db.student.name,
+          lastname: db.student.lastname,
+          career: db.student.career,
+          section: db.student.section,
+          score: db.score,
+          level: db.level,
+          startedAt: db.startedAt,
+          endedAt: db.endedAt,
+          introScore: themePct('intro'),
+          relScore: themePct('relacional'),
+          sqlScore: themePct('sql'),
+          designScore: themePct('diseno'),
+          toolsScore: themePct('tools')
+        };
+
+        fetch(SCRIPT_BASE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(res => {
+          if(res.status === "success") {
+            row(`✅ Rendimiento académico reportado con éxito en la hoja: **${ACTIVE_SHEET_NAME}**`, 'bot');
+          } else {
+            row('⚠️ La nube recibió los datos pero el Google Script indicó problemas al insertarlos.', 'bot');
+          }
+          scrollBottom();
+        })
+        .catch(err => {
+          console.error(err);
+          row('⚠️ Error de red al sincronizar. Por seguridad, descarga tu respaldo manual (Evidencia JSON).', 'bot');
+          scrollBottom();
+        });
+      }
+    }
+
+    // ============================================================
+    // MANEJO DE ENTRADA DE TEXTO
+    // ============================================================
+    function procesarEntradaTexto() {
+      const valor = input.value.trim();
+      if (!valor) return;
+
+      row(valor, 'user');
+      input.value = "";
+
+      if (currentProfileStep < 6) {
+        manejarRegistroPerfil(valor);
+      }
+    }
+
+    send.addEventListener('click', procesarEntradaTexto);
+    input.addEventListener('keypress', (e) => { if(e.key === 'Enter') procesarEntradaTexto(); });
+
+    // ============================================================
+    // INICIALIZAR
+    // ============================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      barFill.style.width = '0%';
+      iniciarProcesoRegistro();
+    });
+  </script>
+</body>
+</html>

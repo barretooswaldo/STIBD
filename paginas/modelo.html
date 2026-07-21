@@ -1,0 +1,177 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba API Key Gemini</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        button {
+            background: linear-gradient(135deg, #4a9eff, #6c5ce7);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74,158,255,0.3);
+        }
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success { color: #00ff88; }
+        .error { color: #ff6b6b; }
+        .info { color: #4a9eff; }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 Prueba API Key Gemini</h1>
+        <p>Ingresa tu API Key para verificar su funcionamiento:</p>
+        
+        <input type="text" id="apiKey" placeholder="AIzaSy... o AQ.Ab8..." 
+               value="AQ.Ab8RN6L1eUerCEYui08ro6s7uvaewA9PC8zoLYi1ZzORLnaorQ">
+        
+        <button onclick="testAPIKey()">🔍 Probar API Key</button>
+        
+        <div id="results">Los resultados aparecerán aquí...</div>
+    </div>
+
+    <script>
+        async function testAPIKey() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const resultsDiv = document.getElementById('results');
+            
+            if (!apiKey) {
+                resultsDiv.innerHTML = '<span class="error">❌ Por favor, ingresa una API Key.</span>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '⏳ Probando API Key...';
+
+            try {
+                // Función para probar la API Key
+                const testEndpoints = [
+                    {
+                        name: "Modelo gemini-pro",
+                        url: `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
+                        payload: {
+                            contents: [{
+                                parts: [{ text: "Di 'hola' en una frase corta." }]
+                            }]
+                        }
+                    },
+                    {
+                        name: "Modelo gemini-1.0-pro",
+                        url: `https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${apiKey}`,
+                        payload: {
+                            contents: [{
+                                parts: [{ text: "Di 'hola' en una frase corta." }]
+                            }]
+                        }
+                    },
+                    {
+                        name: "Modelo gemini-1.5-flash",
+                        url: `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                        payload: {
+                            contents: [{
+                                parts: [{ text: "Di 'hola' en una frase corta." }]
+                            }]
+                        }
+                    }
+                ];
+
+                let results = '📋 Resultados de la prueba:\n\n';
+
+                for (const endpoint of testEndpoints) {
+                    try {
+                        const response = await fetch(endpoint.url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(endpoint.payload)
+                        });
+
+                        const data = await response.json();
+                        
+                        if (data.error) {
+                            results += `❌ ${endpoint.name}: ${data.error.message}\n`;
+                        } else if (data.candidates && data.candidates[0]) {
+                            const text = data.candidates[0].content.parts[0].text;
+                            results += `✅ ${endpoint.name}: Funciona correctamente\n`;
+                            results += `   Respuesta: "${text}"\n\n`;
+                        } else {
+                            results += `⚠️ ${endpoint.name}: Respuesta inesperada\n`;
+                        }
+                    } catch (error) {
+                        results += `❌ ${endpoint.name}: Error de conexión\n`;
+                    }
+                }
+
+                // También intentar listar modelos disponibles
+                try {
+                    const listUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+                    const listResponse = await fetch(listUrl);
+                    const listData = await listResponse.json();
+                    
+                    if (listData.models) {
+                        results += '\n📚 Modelos disponibles con esta API Key:\n';
+                        listData.models.forEach(model => {
+                            if (model.supportedGenerationMethods && 
+                                model.supportedGenerationMethods.includes('generateContent')) {
+                                results += `  ✅ ${model.name}\n`;
+                            }
+                        });
+                    }
+                } catch (error) {
+                    results += '\n⚠️ No se pudieron listar los modelos disponibles.\n';
+                }
+
+                resultsDiv.innerHTML = results.replace(/\n/g, '<br>');
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">❌ Error al probar: ${error.message}</span>`;
+            }
+        }
+
+        // Probar automáticamente al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('apiKey').focus();
+        });
+    </script>
+</body>
+</html>

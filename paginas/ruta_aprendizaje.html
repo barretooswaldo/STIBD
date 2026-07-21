@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruta de Aprendizaje Adaptativa Dinámica - STI Gemini</title>
+  <style>
+    :root {
+      --bg1: #1a450e;
+      --bg2: #0b280a;
+      --glass: rgba(255, 255, 255, .06);
+      --line: rgba(255, 255, 255, .1);
+      --text: #eaf2ff;
+      --muted: #9db0d1;
+      --a1: #38bdf8; 
+      --a2: #8b5cf6; 
+      --a3: #22c55e; 
+      --a4: #f59e0b; 
+      --shadow: 0 20px 50px rgba(0, 0, 0, .5);
+    }
+
+    * { box-sizing: border-box; font-family: 'Inter', Arial, sans-serif; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--text);
+      background: radial-gradient(circle at 50% 50%, #abe8a2 0%, #0b280a 100%);
+      padding: 30px 20px; display: flex; flex-direction: column; align-items: center;
+    }
+    .container { width: 100%; max-width: 1050px; }
+    header { text-align: center; margin-bottom: 40px; }
+    h1 { margin: 0 0 10px 0; font-size: 2rem; color: #fff; }
+    h1 span { color: var(--a1); }
+    .subtitle { color: var(--muted); font-size: 1rem; }
+    .workspace { display: grid; grid-template-columns: 340px 1fr; gap: 25px; }
+    @media (max-width: 768px) { .workspace { grid-template-columns: 1fr; } }
+    .road-map { background: var(--bg2); border: 1px solid var(--line); border-radius: 20px; padding: 20px; height: fit-content; }
+    .road-map h2 { font-size: 1.1rem; margin-top: 0; color: #fff; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+    .theme-step { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--glass); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 12px; cursor: pointer; transition: all 0.3s ease; }
+    .theme-step:hover:not(.disabled):not(.completed) { border-color: var(--a1); background: rgba(255,255,255,0.1); }
+    .theme-step.active { border-color: var(--a2); background: rgba(139, 92, 246, 0.15); }
+    .theme-step.disabled { opacity: 0.4; cursor: not-allowed; }
+    .theme-step.completed { border-color: var(--a3); background: rgba(34, 197, 94, 0.08); cursor: default; }
+    .theme-step.completed .step-title { color: var(--a3); }
+    .step-badge { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; flex-shrink: 0; }
+    .step-info { flex: 1; min-width: 0; }
+    .step-title { font-size: 0.85rem; font-weight: 600; color: #fff; }
+    .step-status { font-size: 0.75rem; }
+    .status-review { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--a4); color: var(--a4); }
+    .status-ok { background: rgba(34, 197, 94, 0.2); border: 1px solid var(--a3); color: var(--a3); }
+    .status-special { background: rgba(56, 189, 248, 0.15); border: 1px solid var(--a1); color: var(--a1); }
+    .status-blank { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); color: var(--muted); }
+    .status-pending { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--a4); color: var(--a4); }
+    .content-viewer { background: var(--bg2); border: 1px solid var(--line); border-radius: 20px; padding: 30px; box-shadow: var(--shadow); position: relative; min-height: 400px; }
+    .badge-priority { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; margin-bottom: 15px; }
+    .card-title { margin: 0 0 15px 0; font-size: 1.5rem; color: #fff; }
+    .challenge-box { background: rgba(139, 92, 246, 0.04); border: 1px dashed var(--a2); border-radius: 14px; padding: 20px; position: relative; }
+    .challenge-box h4 { margin: 0 0 10px 0; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .tracker-pill { font-size: 0.75rem; background: rgba(139, 92, 246, 0.2); padding: 4px 8px; border-radius: 20px; color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .options-group { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+    .option-btn { background: var(--glass); border: 1px solid var(--line); border-radius: 8px; padding: 12px; color: var(--text); text-align: left; cursor: pointer; transition: all 0.2s; }
+    .option-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); border-color: var(--muted); }
+    .option-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .option-btn.correct { background: rgba(34, 197, 94, 0.2); border-color: var(--a3); }
+    .option-btn.incorrect { background: rgba(239, 68, 68, 0.2); border-color: #f87171; }
+    .feedback { margin-top: 15px; padding: 12px; border-radius: 8px; font-size: 0.9rem; display: none; }
+    .feedback.success { background: rgba(34,197,94,0.12); border: 1px solid var(--a3); color: #4ade80; }
+    .feedback.error { background: rgba(239,68,68,0.12); border: 1px solid #f87171; color: #f87171; }
+    .timer-container { margin-top: 15px; display: none; }
+    .timer-text { font-size: 0.8rem; color: var(--a4); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+    .timer-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+    .timer-bar-fill { width: 100%; height: 100%; background: var(--a4); transition: width 1s linear; }
+    .loading-overlay { display: none; text-align: center; padding: 40px; color: var(--a1); font-weight: 500; }
+    .spinner { border: 4px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--a1); animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .theme-progress { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .contingency-badge { background: rgba(245, 158, 11, 0.2); border: 1px solid var(--a4); color: var(--a4); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px; }
+    .sync-status { font-size: 0.75rem; color: var(--muted); margin-top: 5px; }
+    .sync-status.success { color: var(--a3); }
+    .sync-status.error { color: #f87171; }
+    .sync-status.syncing { color: var(--a4); }
+    .completed-badge { background: rgba(34, 197, 94, 0.2); border: 1px solid var(--a3); color: var(--a3); padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; margin-left: 6px; }
+    .chat-container { display: flex; flex-direction: column; gap: 10px; }
+    .chat-messages { background: var(--glass); border: 1px solid var(--line); border-radius: 12px; padding: 15px; min-height: 300px; max-height: 400px; overflow-y: auto; color: var(--text); }
+    .chat-messages .user { text-align: right; color: var(--a1); margin: 8px 0; }
+    .chat-messages .bot { text-align: left; color: var(--a3); margin: 8px 0; }
+    .chat-messages .loading { text-align: left; color: var(--muted); margin: 8px 0; }
+    .chat-messages .error { text-align: left; color: #f87171; margin: 8px 0; }
+    .chat-input-row { display: flex; gap: 10px; }
+    .chat-input-row input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--glass); color: #fff; font-size: 1rem; outline: none; }
+    .chat-input-row input:focus { border-color: var(--a1); }
+    .chat-input-row button { padding: 12px 24px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--a1), var(--a2)); color: #fff; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+    .chat-input-row button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4); }
+    .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-home {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 1.2rem;
+    }
+
+    .btn-home:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--a1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn-home svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>🎓 Tu Ruta Adaptativa Inteligente <span>| STI + Gemini</span></h1>
+    <div class="subtitle" id="welcomeUser">Cargando perfil académico...</div>
+    <div class="sync-status" id="syncStatus">📂 Cargando datos desde el perfil...</div>
+  </header>
+
+  <div class="workspace">
+
+    <a href="../index.html" class="btn-home" title="Volver al inicio">
+        <svg viewBox="0 0 24 24">
+            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/>
+        </svg>
+    </a>
+
+    <aside class="road-map">
+      <h2>Ejes Temáticos</h2>
+      <div id="stepsContainer"></div>
+    </aside>
+
+    <main class="content-viewer" id="viewerCore">
+      <div id="defaultMessage" style="text-align:center; padding: 40px 0; color:var(--muted);">
+        👈 Selecciona un eje temático disponible en tu mapa de ruta para comenzar.
+      </div>
+      <div class="loading-overlay" id="loadingIA">
+        <div class="spinner"></div>
+        <span>🧠 Gemini está estructurando tu próximo desafío adaptativo...</span>
+      </div>
+      <div id="dynamicContentZone" style="display: none;"></div>
+    </main>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURACIÓN
+  // ============================================================
+  const PROXY_URL = "../proxy.php";
+  const SCRIPT_BASE_URL = PROXY_URL;
+
+  // ============================================================
+  // MAPEO DE TEMAS
+  // ============================================================
+  const TEMAS = {
+    "Introducción a BD": "introScore",
+    "Modelo Relacional": "relScore",
+    "Lenguaje SQL": "sqlScore",
+    "Diseño de BD": "designScore",
+    "SGBD y Herramientas": "toolsScore"
+  };
+
+  const THEMES_LIST = Object.keys(TEMAS);
+
+  const MODULO_MAP = {
+    "Introducción a BD": "Módulo 1: Introducción a las Bases de Datos",
+    "Modelo Relacional": "Módulo 2: Diseño de Bases de Datos",
+    "Lenguaje SQL": "Módulo 3: Administración de Bases de Datos",
+    "Diseño de BD": "Módulo 4: Optimización de Bases de Datos",
+    "SGBD y Herramientas": "Módulo 5: Herramientas y Tecnologías"
+  };
+
+  // ============================================================
+  // ESTADO GLOBAL
+  // ============================================================
+  let activeThemeGlobal = "";
+  let currentCorrectCount = 0;
+  let requiredCorrectForUnlock = 5;
+  let countdownInterval = null;
+  let currentChallengeActive = null;
+  let historialDesafios = [];
+  let isWaitingForResponse = false;
+  let studentCedula = "";
+  let progresoTemas = {};
+
+  // ============================================================
+  // FUNCIÓN PARA OBTENER EL VALOR DE UN TEMA DESDE LOCALSTORAGE
+  // ============================================================
+  function obtenerValorTema(theme) {
+    const puntajesJSON = localStorage.getItem('sti_puntajes');
+    if (puntajesJSON) {
+      try {
+        const puntajes = JSON.parse(puntajesJSON);
+        if (puntajes[theme] !== undefined) {
+          return puntajes[theme];
+        }
+        for (const [key, val] of Object.entries(puntajes)) {
+          if (key.includes(theme) || theme.includes(key)) {
+            return val;
+          }
+        }
+      } catch (e) {
+        console.error("Error al parsear sti_puntajes:", e);
+      }
+    }
+    
+    const storageKey = `sti_score_${theme}`.replace(/ /g, '_');
+    return localStorage.getItem(storageKey) || "0%";
+  }
+
+  // ============================================================
+  // FUNCIONES PARA MEZCLAR Y VERIFICAR OPCIONES
+  // ============================================================
+  function mezclarOpciones(options) {
+    var opcionesCopy = options.slice();
+    for (var i = opcionesCopy.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = opcionesCopy[i];
+      opcionesCopy[i] = opcionesCopy[j];
+      opcionesCopy[j] = temp;
+    }
+    return opcionesCopy;
+  }
+
+  function verificarEstructuraOpciones(challenge) {
+    if (!challenge || !challenge.options || challenge.options.length !== 3) {
+      console.error("❌ Desafío inválido:", challenge);
+      return false;
+    }
+    
+    var correctas = 0;
+    for (var i = 0; i < challenge.options.length; i++) {
+      if (challenge.options[i].c === true || challenge.options[i].c === "true") {
+        correctas++;
+      }
+    }
+    
+    if (correctas !== 1) {
+      console.error("❌ Debe haber exactamente 1 opción correcta. Encontradas:", correctas);
+      if (correctas === 0) {
+        challenge.options[0].c = true;
+      } else if (correctas > 1) {
+        var encontrada = false;
+        for (var i = 0; i < challenge.options.length; i++) {
+          if (!encontrada && (challenge.options[i].c === true || challenge.options[i].c === "true")) {
+            encontrada = true;
+          } else {
+            challenge.options[i].c = false;
+          }
+        }
+      }
+    }
+    
+    return true;
+  }
+
+  // ============================================================
+  // FUNCIÓN PARA ACTUALIZAR PROGRESO EN GOOGLE SHEETS (GUARDA NÚMERO)
+  // ============================================================
+  async function actualizarProgresoEnSheet(cedula, themeKey, progress) {
+    try {
+      if (progress < 100) {
+        console.log(`📝 Progreso ${progress}% < 100%, no se actualiza en Sheets`);
+        return true;
+      }
+
+      const sheetKey = TEMAS[themeKey];
+      if (!sheetKey) {
+        console.error("❌ Tema no mapeado:", themeKey);
+        return false;
+      }
+
+      const payload = {
+        action: "UPDATE_STUDENT_PROGRESS",
+        sheetName: "Datossti",
+        cedula: cedula,
+        themeKey: sheetKey,
+        progress: progress
+      };
+
+      console.log("📤 Enviando actualización 100% a Sheets (como número):", payload);
+
+      const response = await fetch(SCRIPT_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Error HTTP:", errorText);
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("📥 Respuesta de Sheets:", data);
+      return data.status === "success";
+    } catch (error) {
+      console.error("❌ Error al actualizar progreso:", error);
+      return false;
+    }
+  }
+
+  // ============================================================
+  // INICIALIZACIÓN - CARGAR DATOS DESDE LOCALSTORAGE
+  // ============================================================
+  document.addEventListener("DOMContentLoaded", () => {
+    const estudianteNombre = localStorage.getItem('sti_student_name') || "Estudiante";
+    const estudianteApellido = localStorage.getItem('sti_student_lastname') || "";
+    studentCedula = localStorage.getItem('sti_student_id') || "";
+    
+    document.getElementById('welcomeUser').textContent = `Estudiante: ${estudianteNombre} ${estudianteApellido} | Cédula: ${studentCedula}`;
+    
+    const syncStatus = document.getElementById('syncStatus');
+    
+    console.log("📂 ====== CARGANDO DATOS DESDE LOCALSTORAGE ======");
+    
+    THEMES_LIST.forEach(theme => {
+      const valor = obtenerValorTema(theme);
+      const pct = parseFloat(valor) || 0;
+      progresoTemas[theme] = pct;
+      console.log(`📌 ${theme}: ${valor} → ${pct}%`);
+    });
+    
+    console.log("📊 Progreso temas final:", progresoTemas);
+    
+    const completados = THEMES_LIST.filter(t => progresoTemas[t] >= 100);
+    console.log("✅ Temas completados:", completados);
+    
+    syncStatus.textContent = completados.length > 0 
+      ? `✅ ${completados.length} temas completados`
+      : '📂 Datos cargados desde almacenamiento local';
+    syncStatus.className = completados.length > 0 ? 'sync-status success' : 'sync-status';
+    
+    renderSequencedRoadMap();
+    
+    const primeraNoCompletada = THEMES_LIST.find(theme => {
+      const pct = progresoTemas[theme] || 0;
+      return pct < 100;
+    });
+    
+    console.log("🎯 Primera no completada:", primeraNoCompletada);
+    
+    if (primeraNoCompletada) {
+      setTimeout(() => {
+        loadThemeContent(primeraNoCompletada);
+      }, 500);
+    } else {
+      document.getElementById('defaultMessage').style.display = 'block';
+      document.getElementById('defaultMessage').innerHTML = `
+        <div style="text-align:center; padding: 40px 20px;">
+          <h2 style="color: var(--a3);">🎉 ¡Felicidades!</h2>
+          <p style="color: var(--muted);">Has completado todas las secciones al 100%.</p>
+          <p style="color: var(--muted);">Puedes usar el chatbot para seguir aprendiendo.</p>
+        </div>
+      `;
+    }
+  });
+
+  // ============================================================
+  // RENDERIZAR MAPA DE RUTA
+  // ============================================================
+  function renderSequencedRoadMap() {
+    const stepsContainer = document.getElementById('stepsContainer');
+    stepsContainer.innerHTML = '';
+    let idx = 1;
+    let previousCompleted = true;
+
+    THEMES_LIST.forEach(theme => {
+      const pct = progresoTemas[theme] || 0;
+      const rawPct = pct + "%";
+      
+      const isCompleted = pct >= 100;
+      const isLocked = !previousCompleted && !isCompleted;
+      
+      let badgeClass = "status-pending";
+      let statusText = `Progreso: ${rawPct}`;
+      let extraClass = "";
+      let clickAction = "";
+
+      if (isCompleted) {
+        badgeClass = "status-ok";
+        statusText = "✅ Completado (100%)";
+        extraClass = "completed";
+        clickAction = `alert('✅ Ya has completado "${theme}" al 100%.')`;
+      } else if (isLocked) {
+        badgeClass = "status-blank";
+        statusText = "🔒 Bloqueado";
+        extraClass = "disabled";
+        clickAction = `alert('🔒 Completa el tema anterior al 100% para desbloquear este.')`;
+      } else {
+        badgeClass = "status-pending";
+        statusText = `🔄 En progreso (${rawPct})`;
+        extraClass = "";
+        clickAction = `loadThemeContent('${theme}')`;
+      }
+
+      const isActive = activeThemeGlobal === theme;
+
+      stepsContainer.insertAdjacentHTML('beforeend', `
+        <div class="theme-step ${extraClass} ${isActive ? 'active' : ''}" onclick="${clickAction}">
+          <div class="step-badge ${badgeClass}">${idx}</div>
+          <div class="step-info">
+            <div class="step-title">
+              ${theme}
+              ${isCompleted ? '<span class="completed-badge">✅ 100%</span>' : ''}
+            </div>
+            <div class="step-status" style="color: ${isCompleted ? 'var(--a3)' : (isLocked ? 'var(--muted)' : 'var(--a4)')}">
+              ${statusText}
+            </div>
+            <div class="theme-progress">
+              ${isCompleted ? '🎉 Completado' : (isLocked ? '🔒 Bloqueado' : `🔄 ${pct}% completado`)}
+            </div>
+          </div>
+        </div>
+      `);
+      
+      previousCompleted = isCompleted;
+      idx++;
+    });
+
+    stepsContainer.insertAdjacentHTML('beforeend', `
+      <div class="theme-step ${activeThemeGlobal === 'chatbot' ? 'active' : ''}" onclick="loadChatbotModule()">
+        <div class="step-badge status-special">6</div>
+        <div class="step-info">
+          <div class="step-title">💬 Chatbot con Gemini</div>
+          <div class="step-status" style="color: var(--a1)">Pregunta sobre bases de datos</div>
+        </div>
+      </div>
+    `);
+  }
+
+  // ============================================================
+  // CARGAR CONTENIDO DE TEMA
+  // ============================================================
+  function loadThemeContent(themeKey) {
+    if (isWaitingForResponse) return;
+    
+    const pct = progresoTemas[themeKey] || 0;
+    
+    if (pct >= 100) {
+      alert(`✅ Ya has completado "${themeKey}" al 100%.`);
+      return;
+    }
+    
+    const indexActual = THEMES_LIST.indexOf(themeKey);
+    if (indexActual > 0) {
+      const temaAnterior = THEMES_LIST[indexActual - 1];
+      const pctAnterior = progresoTemas[temaAnterior] || 0;
+      
+      if (pctAnterior < 100) {
+        alert(`🔒 Debes completar "${temaAnterior}" al 100% primero.`);
+        return;
+      }
+    }
+    
+    if (countdownInterval) clearInterval(countdownInterval);
+    activeThemeGlobal = themeKey;
+    
+    currentCorrectCount = 0;
+    
+    renderSequencedRoadMap();
+    generarDesafioConGemini(themeKey);
+  }
+
+  // ============================================================
+  // GENERAR DESAFÍO CON GEMINI
+  // ============================================================
+  function generarDesafioConGemini(themeKey) {
+    document.getElementById('defaultMessage').style.display = "none";
+    document.getElementById('dynamicContentZone').style.display = "none";
+    document.getElementById('loadingIA').style.display = "block";
+    isWaitingForResponse = true;
+
+    const moduloId = MODULO_MAP[themeKey] || themeKey;
+    
+    const historialContexto = historialDesafios.filter(h => h.theme === themeKey).slice(-3);
+
+    const payload = {
+      action: "GENERATE_CHALLENGE",
+      moduloId: moduloId,
+      history: historialContexto,
+      tema: themeKey
+    };
+
+    fetch(SCRIPT_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Error de red al conectar con el servidor.");
+      return res.json();
+    })
+    .then(data => {
+      isWaitingForResponse = false;
+      
+      if (data && data.status === "success") {
+        if (data.challenge && data.challenge.q && data.challenge.options) {
+          renderChallengeUI(data.challenge, false);
+        } else {
+          throw new Error("El desafío generado no tiene la estructura correcta.");
+        }
+      } else if (data && data.status === "error") {
+        throw new Error(data.message);
+      } else {
+        throw new Error("Respuesta inesperada del servidor.");
+      }
+    })
+    .catch(err => {
+      isWaitingForResponse = false;
+      console.error("Error al generar desafío con Gemini:", err);
+      
+      const desafioContingencia = generarDesafioContingencia(themeKey);
+      renderChallengeUI(desafioContingencia, true);
+    });
+  }
+
+  // ============================================================
+  // DESAFÍOS DE CONTINGENCIA
+  // ============================================================
+  function generarDesafioContingencia(themeKey) {
+    const desafiosBase = {
+      "Introducción a BD": {
+        q: "¿Cuál es el propósito principal de un Sistema de Gestión de Bases de Datos (SGBD)?",
+        options: [
+          { t: "Gestionar y organizar datos de manera eficiente y segura", f: "Correcto. El DBMS permite almacenar, recuperar y gestionar datos de forma estructurada.", c: true },
+          { t: "Crear páginas web dinámicas", f: "Incorrecto. Eso es función de frameworks web, no de un DBMS.", c: false },
+          { t: "Editar imágenes y videos", f: "Incorrecto. Esa es función de software de edición multimedia.", c: false }
+        ]
+      },
+      "Modelo Relacional": {
+        q: "¿Qué es la normalización en el diseño de bases de datos?",
+        options: [
+          { t: "Es el proceso de organizar datos para reducir redundancia y mejorar integridad", f: "Correcto. La normalización organiza los datos en tablas relacionadas para evitar duplicación.", c: true },
+          { t: "Es crear copias de seguridad de la base de datos", f: "Incorrecto. Eso es parte de la administración, no del diseño.", c: false },
+          { t: "Es optimizar consultas SQL", f: "Incorrecto. Eso es optimización, no normalización.", c: false }
+        ]
+      },
+      "Lenguaje SQL": {
+        q: "¿Cuál es la función de GRANT y REVOKE en SQL?",
+        options: [
+          { t: "Gestionar permisos de acceso a la base de datos", f: "Correcto. GRANT otorga permisos y REVOKE los retira.", c: true },
+          { t: "Crear y eliminar tablas", f: "Incorrecto. Eso es DDL (CREATE TABLE, DROP TABLE).", c: false },
+          { t: "Insertar y eliminar registros", f: "Incorrecto. Eso es DML (INSERT, DELETE).", c: false }
+        ]
+      },
+      "Diseño de BD": {
+        q: "¿Qué técnica se usa para mejorar el rendimiento de consultas en una base de datos?",
+        options: [
+          { t: "Crear índices en columnas frecuentemente consultadas", f: "Correcto. Los índices aceleran la búsqueda de datos.", c: true },
+          { t: "Eliminar todas las restricciones de integridad", f: "Incorrecto. Eliminar restricciones compromete la integridad.", c: false },
+          { t: "Duplicar todos los datos en múltiples tablas", f: "Incorrecto. La redundancia excesiva es contraproducente.", c: false }
+        ]
+      },
+      "SGBD y Herramientas": {
+        q: "¿Cuál es una herramienta popular para el diseño visual de bases de datos?",
+        options: [
+          { t: "Lucidchart o DbSchema", f: "Correcto. Estas herramientas permiten diseñar diagramas ER visualmente.", c: true },
+          { t: "Visual Studio Code", f: "Incorrecto. VS Code es un editor de código general.", c: false },
+          { t: "Excel", f: "Incorrecto. Excel no es una herramienta de diseño de bases de datos.", c: false }
+        ]
+      }
+    };
+    
+    let desafio = desafiosBase[themeKey] || {
+      q: `¿Cuál es un objetivo fundamental en el diseño de bases de datos para el tema ${themeKey}?`,
+      options: [
+        { t: "Garantizar la integridad y consistencia de los datos", f: "Correcto. La integridad y consistencia son pilares del diseño.", c: true },
+        { t: "Maximizar el espacio de almacenamiento", f: "Incorrecto. El objetivo no es llenar espacio, sino organizar eficientemente.", c: false },
+        { t: "Minimizar el número de tablas", f: "Incorrecto. El número de tablas depende del diseño lógico.", c: false }
+      ]
+    };
+    
+    desafio.options = mezclarOpciones(desafio.options);
+    return desafio;
+  }
+
+  // ============================================================
+  // RENDERIZAR UI DEL DESAFÍO
+  // ============================================================
+  function renderChallengeUI(challenge, esContingencia) {
+    if (!verificarEstructuraOpciones(challenge)) {
+      console.error("❌ Desafío con estructura inválida, usando contingencia");
+      challenge = generarDesafioContingencia(activeThemeGlobal);
+      esContingencia = true;
+    }
+    
+    currentChallengeActive = challenge;
+    document.getElementById('loadingIA').style.display = "none";
+    
+    const zone = document.getElementById('dynamicContentZone');
+    zone.style.display = "block";
+    
+    const badgeContingencia = esContingencia ? '<span class="contingency-badge">⚡ Modo Contingencia</span>' : '';
+    
+    zone.innerHTML = `
+      <span class="badge-priority" style="background:rgba(56, 189, 248, 0.12); color:var(--a1); border:1px solid var(--a1);">
+        🧠 GENERADO POR GEMINI ${badgeContingencia}
+      </span>
+      <h3 class="card-title">Eje Evaluador: ${activeThemeGlobal}</h3>
+      
+      <div class="challenge-box" id="challengeContainer">
+        <h4>
+          <span>⚡ Desafío Dinámico del Bot</span>
+          <span class="tracker-pill" id="scoreTracker">Aciertos: ${currentCorrectCount} / ${requiredCorrectForUnlock} (${Math.round((currentCorrectCount / requiredCorrectForUnlock) * 100)}%)</span>
+        </h4>
+        <p style="font-weight: 500; line-height:1.5; font-size:1.05rem;">${challenge.q}</p>
+        <div class="options-group" id="optionsGroup">
+          ${challenge.options.map((opt, i) => `
+            <button class="option-btn" onclick="evaluarDesafio(${i})" data-index="${i}">
+              ${String.fromCharCode(65 + i)}) ${opt.t}
+            </button>
+          `).join('')}
+        </div>
+        
+        <div id="challengeFeedback" class="feedback"></div>
+        
+        <div class="timer-container" id="timerSection">
+          <div class="timer-text">⏳ <span>Analiza la respuesta... Siguiente desafío en 20s</span></div>
+          <div class="timer-bar-bg"><div class="timer-bar-fill" id="timerBar"></div></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // EVALUAR DESAFÍO Y ACTUALIZAR GOOGLE SHEETS
+  // ============================================================
+  async function evaluarDesafio(optionIndex) {
+    if (isWaitingForResponse) return;
+    
+    const feedbackBox = document.getElementById('challengeFeedback');
+    const timerSection = document.getElementById('timerSection');
+    const timerBar = document.getElementById('timerBar');
+    const scoreTracker = document.getElementById('scoreTracker');
+    
+    document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+
+    const optionSelected = currentChallengeActive.options[optionIndex];
+    const isCorrect = optionSelected.c === true || optionSelected.c === "true";
+
+    console.log("🔍 Evaluando respuesta:", {
+      index: optionIndex,
+      selected: optionSelected,
+      isCorrect: isCorrect,
+      allOptions: currentChallengeActive.options
+    });
+
+    const botones = document.querySelectorAll('.option-btn');
+    botones.forEach((btn, idx) => {
+      const opt = currentChallengeActive.options[idx];
+      const esCorrecta = opt.c === true || opt.c === "true";
+      if (esCorrecta) {
+        btn.classList.add('correct');
+      }
+      if (idx === optionIndex && !isCorrect) {
+        btn.classList.add('incorrect');
+      }
+    });
+
+    historialDesafios.push({
+      theme: activeThemeGlobal,
+      q: currentChallengeActive.q,
+      correct: isCorrect,
+      ts: new Date().toISOString()
+    });
+
+    if (isCorrect) {
+      feedbackBox.className = "feedback success";
+      feedbackBox.innerHTML = `<strong>🎉 ¡Acierto Excelente!</strong><br>${optionSelected.f}`;
+      
+      if (currentCorrectCount < requiredCorrectForUnlock) {
+        currentCorrectCount++;
+        const newProgress = Math.round((currentCorrectCount / requiredCorrectForUnlock) * 100);
+        const keyStorage = `sti_score_${activeThemeGlobal}`.replace(/ /g, '_');
+        
+        localStorage.setItem(keyStorage, `${newProgress}%`);
+        progresoTemas[activeThemeGlobal] = newProgress;
+        
+        try {
+          const puntajesJSON = localStorage.getItem('sti_puntajes');
+          if (puntajesJSON) {
+            const puntajes = JSON.parse(puntajesJSON);
+            puntajes[activeThemeGlobal] = `${newProgress}%`;
+            localStorage.setItem('sti_puntajes', JSON.stringify(puntajes));
+          }
+        } catch (e) {
+          console.error("Error al actualizar sti_puntajes:", e);
+        }
+        
+        scoreTracker.textContent = `Aciertos: ${currentCorrectCount} / ${requiredCorrectForUnlock} (${newProgress}%)`;
+        
+        if (studentCedula && newProgress === 100) {
+          const syncStatus = document.getElementById('syncStatus');
+          syncStatus.textContent = '🔄 ¡100%! Guardando en Google Sheets...';
+          syncStatus.className = 'sync-status syncing';
+          
+          const actualizado = await actualizarProgresoEnSheet(
+            studentCedula, 
+            activeThemeGlobal, 
+            newProgress
+          );
+          
+          if (actualizado) {
+            syncStatus.textContent = '✅ ¡100% completado! Guardado en Google Sheets';
+            syncStatus.className = 'sync-status success';
+            feedbackBox.innerHTML += `<br><br>🏆 ¡FELICITACIONES! Has completado "${activeThemeGlobal}" al 100%.`;
+          } else {
+            syncStatus.textContent = '⚠️ Error al guardar 100% en Google Sheets';
+            syncStatus.className = 'sync-status error';
+          }
+        } else if (studentCedula && newProgress < 100) {
+          console.log(`📝 Progreso ${newProgress}% - No se actualiza en Sheets (solo al 100%)`);
+        }
+        
+        renderSequencedRoadMap();
+      }
+    } else {
+      feedbackBox.className = "feedback error";
+      feedbackBox.innerHTML = `<strong>❌ Incorrecto.</strong><br>${optionSelected.f}`;
+    }
+    
+    feedbackBox.style.display = "block";
+    timerSection.style.display = "block";
+
+    let timeLeft = 20;
+    timerBar.style.width = '100%';
+    
+    if (countdownInterval) clearInterval(countdownInterval);
+    
+    countdownInterval = setInterval(() => {
+      timeLeft--;
+      timerBar.style.width = `${(timeLeft / 20) * 100}%`;
+      timerSection.querySelector('.timer-text span').textContent = `Siguiente reactivo del Bot en ${timeLeft}s`;
+
+      if (timeLeft <= 0) {
+        clearInterval(countdownInterval);
+        
+        if (currentCorrectCount >= requiredCorrectForUnlock) {
+          document.getElementById('challengeContainer').innerHTML = `
+            <div style="text-align:center; padding:20px; color:var(--a3);">
+              <h3>🏆 ¡Meta de Dominio Completada!</h3>
+              <p>Has alcanzado los ${requiredCorrectForUnlock} aciertos en "<strong>${activeThemeGlobal}</strong>".</p>
+              <p style="color:var(--muted); font-size:0.9rem;">El siguiente eje temático está ahora disponible en tu panel adaptativo.</p>
+              <div style="margin-top:15px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                <button onclick="cargarSiguienteTemaNoCompletado()" style="padding:10px 24px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a3), #16a34a); color:#fff; cursor:pointer; font-weight:bold;">
+                  ➡️ Siguiente tema
+                </button>
+                <button onclick="location.reload()" style="padding:10px 24px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold;">
+                  🔄 Actualizar progreso
+                </button>
+              </div>
+            </div>
+          `;
+          renderSequencedRoadMap();
+        } else {
+          generarDesafioConGemini(activeThemeGlobal);
+        }
+      }
+    }, 1000);
+  }
+
+  // ============================================================
+  // CARGAR SIGUIENTE TEMA NO COMPLETADO
+  // ============================================================
+  function cargarSiguienteTemaNoCompletado() {
+    const siguiente = THEMES_LIST.find(theme => {
+      const pct = progresoTemas[theme] || 0;
+      return pct < 100;
+    });
+    
+    if (siguiente) {
+      loadThemeContent(siguiente);
+    } else {
+      document.getElementById('defaultMessage').style.display = 'block';
+      document.getElementById('defaultMessage').innerHTML = `
+        <div style="text-align:center; padding: 40px 20px;">
+          <h2 style="color: var(--a3);">🎉 ¡Felicidades!</h2>
+          <p style="color: var(--muted);">Has completado todas las secciones al 100%.</p>
+          <p style="color: var(--muted);">Puedes usar el chatbot para seguir aprendiendo.</p>
+        </div>
+      `;
+      document.getElementById('dynamicContentZone').style.display = 'none';
+      activeThemeGlobal = "";
+      renderSequencedRoadMap();
+    }
+  }
+
+  // ============================================================
+  // MÓDULO CHATBOT CON GEMINI (NUEVO)
+  // ============================================================
+  function loadChatbotModule() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    activeThemeGlobal = "chatbot";
+    renderSequencedRoadMap();
+
+    document.getElementById('defaultMessage').style.display = "none";
+    document.getElementById('loadingIA').style.display = "none";
+    document.getElementById('dynamicContentZone').style.display = "block";
+    
+    document.getElementById('dynamicContentZone').innerHTML = `
+      <h3 class="card-title">💬 Chatbot con Gemini</h3>
+      <p style="color:var(--muted); margin-bottom:20px;">Escribe tu pregunta sobre bases de datos y Gemini te responderá.</p>
+      
+      <div class="chat-container">
+        <div class="chat-messages" id="chatConversation">
+          <p style="color:var(--muted); text-align:center;">💬 Haz una pregunta sobre bases de datos</p>
+        </div>
+        
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Escribe tu pregunta..." autocomplete="off">
+          <button id="chatSendBtn" onclick="enviarPreguntaGemini()">Enviar</button>
+        </div>
+      </div>
+    `;
+
+    // Permitir enviar con Enter
+    document.getElementById('chatInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        enviarPreguntaGemini();
+      }
+    });
+    
+    // Enfocar el input automáticamente
+    document.getElementById('chatInput').focus();
+  }
+
+  // ============================================================
+  // FUNCIÓN PARA ENVIAR PREGUNTA A GEMINI
+  // ============================================================
+  async function enviarPreguntaGemini() {
+    const input = document.getElementById('chatInput');
+    const conversation = document.getElementById('chatConversation');
+    const sendBtn = document.getElementById('chatSendBtn');
+    const pregunta = input.value.trim();
+    
+    if (!pregunta) return;
+    
+    // Deshabilitar botón mientras se procesa
+    sendBtn.disabled = true;
+    sendBtn.textContent = '⏳ Enviando...';
+    
+    // Mostrar pregunta del usuario
+    conversation.innerHTML += `<div class="user">👤 ${pregunta}</div>`;
+    input.value = '';
+    conversation.scrollTop = conversation.scrollHeight;
+    
+    // Mostrar indicador de carga
+    const loadingId = 'loading_' + Date.now();
+    conversation.innerHTML += `<div class="loading" id="${loadingId}">⏳ Gemini está pensando...</div>`;
+    conversation.scrollTop = conversation.scrollHeight;
+    
+    try {
+      const payload = {
+        action: "CHAT_WITH_GEMINI",
+        message: pregunta,
+        context: "Eres un asistente experto en Bases de Datos. Responde preguntas sobre: Introducción a BD, Modelo Relacional, SQL, Diseño de BD, Optimización, SGBD y Herramientas. Sé claro, conciso y educativo."
+      };
+      
+      const response = await fetch(SCRIPT_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await response.json();
+      
+      // Eliminar indicador de carga
+      document.getElementById(loadingId)?.remove();
+      
+      if (data.status === "success" && data.response) {
+        conversation.innerHTML += `<div class="bot">🤖 ${data.response}</div>`;
+      } else {
+        conversation.innerHTML += `<div class="error">❌ Error: ${data.message || 'No se pudo obtener respuesta'}</div>`;
+      }
+    } catch (error) {
+      document.getElementById(loadingId)?.remove();
+      conversation.innerHTML += `<div class="error">❌ Error de conexión: ${error.message}</div>`;
+    }
+    
+    // Restaurar botón
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Enviar';
+    conversation.scrollTop = conversation.scrollHeight;
+    
+    // Enfocar input nuevamente
+    input.focus();
+  }
+</script>
+</body>
+</html>

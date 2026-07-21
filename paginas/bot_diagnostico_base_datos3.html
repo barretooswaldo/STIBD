@@ -385,7 +385,7 @@
     <div class="topbar">
       <div class="topline">
         <span id="progText">Progreso: 0%</span>
-        <span id="stepText">Pregunta 0 de 25</span>
+        <span id="stepText">Pregunta 0 de 20</span>
       </div>
       <div class="bar"><div id="barFill"></div></div>
     </div>
@@ -404,8 +404,8 @@
     // ============================================================
     const SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbyhL7BAwoDtJLw6YsPMKwtYIubPno3MLPVthpAeDrRyoS_lwI8DOr00Xw58wGi90aaHiQ/exec";
     const ACTIVE_SHEET_NAME = localStorage.getItem('sti_active_sheet_name') || "Datossti";
-    const TOTAL_PREGUNTAS = 25;
-    const PREGUNTAS_POR_MODULO = 5;
+    const TOTAL_PREGUNTAS = 20;
+    const PREGUNTAS_POR_MODULO = 4;
 
     const MODULOS_STI = [
       { id: "Módulo 1: Introducción a las Bases de Datos", clave: "intro" },
@@ -442,7 +442,6 @@
     let preguntaActual = null;
     let soundOn = true;
     let isEsperandoRespuesta = false;
-    let moduloCompletado = false;
 
     // ============================================================
     // DOM REFERENCIAS
@@ -573,7 +572,7 @@
           currentProfileStep = 6;
           localStorage.setItem('sti_student_id', db.student.id);
           state.textContent = 'En línea';
-          row(`¡Registro Exitoso! Bienvenido **${db.student.name} ${db.student.lastname}**. Iniciaremos el diagnóstico adaptativo con ${TOTAL_PREGUNTAS} preguntas (5 por módulo). ¡Comencemos!`, 'bot');
+          row(`¡Registro Exitoso! Bienvenido **${db.student.name} ${db.student.lastname}**. Iniciaremos el diagnóstico adaptativo con ${TOTAL_PREGUNTAS} preguntas (4 por módulo). ¡Comencemos!`, 'bot');
           setTimeout(iniciarDiagnostico, 1500);
           break;
       }
@@ -585,7 +584,6 @@
     function iniciarDiagnostico() {
       currentModuloIndex = 0;
       preguntasRespondidasModulo = 0;
-      moduloCompletado = false;
       cargarSiguienteModulo();
     }
 
@@ -600,7 +598,6 @@
 
       const moduloActual = MODULOS_STI[currentModuloIndex];
       preguntasRespondidasModulo = 0;
-      moduloCompletado = false;
       
       // Seleccionar preguntas adaptativas para este módulo
       preguntasModuloActual = seleccionarPreguntasAdaptativas(
@@ -629,10 +626,7 @@
     // MOSTRAR PREGUNTA
     // ============================================================
     function mostrarPregunta() {
-      if (moduloCompletado) return;
-
       if (preguntasRespondidasModulo >= preguntasModuloActual.length) {
-        // Módulo completado, pasar al siguiente
         currentModuloIndex++;
         setTimeout(cargarSiguienteModulo, 1000);
         return;
@@ -817,6 +811,24 @@
             pregunta: "Las bases de datos relacionales usan tablas con filas y columnas.",
             respuestaCorrecta: true,
             feedback: "Correcto. Las bases de datos relacionales usan tablas."
+          },
+          {
+            id: 'cont_intro_3',
+            tipo: 'completacion',
+            nivel: 'básico',
+            pregunta: "La sigla SGBD significa ______________.",
+            respuestaCorrecta: "Sistema de Gestión de Bases de Datos",
+            opciones: ["Sistema de Gestión de Bases de Datos", "Software de Gráficos", "Servidor General"],
+            feedback: "Correcto. SGBD significa Sistema de Gestión de Bases de Datos."
+          },
+          {
+            id: 'cont_intro_4',
+            tipo: 'multiple',
+            nivel: 'intermedio',
+            pregunta: "¿Qué nivel de la arquitectura ANSI-SPARC describe la estructura física?",
+            opciones: ["Nivel Externo", "Nivel Conceptual", "Nivel Interno", "Nivel de Usuario"],
+            respuestaCorrecta: 2,
+            feedback: "Correcto. El nivel interno describe cómo se almacenan físicamente los datos."
           }
         ],
         'relacional': [
@@ -828,6 +840,32 @@
             opciones: ["Reducir redundancia", "Crear copias de seguridad", "Optimizar consultas", "Crear índices"],
             respuestaCorrecta: 0,
             feedback: "La normalización reduce redundancia y mejora integridad."
+          },
+          {
+            id: 'cont_rel_2',
+            tipo: 'vf',
+            nivel: 'básico',
+            pregunta: "Una clave foránea debe referenciar la clave primaria de otra tabla.",
+            respuestaCorrecta: true,
+            feedback: "Correcto. Una clave foránea referencia la clave primaria de otra tabla."
+          },
+          {
+            id: 'cont_rel_3',
+            tipo: 'completacion',
+            nivel: 'básico',
+            pregunta: "Una ______________ identifica de forma única cada registro en una tabla.",
+            respuestaCorrecta: "clave primaria",
+            opciones: ["clave primaria", "clave foránea", "índice"],
+            feedback: "Correcto. La clave primaria identifica de forma única cada registro."
+          },
+          {
+            id: 'cont_rel_4',
+            tipo: 'multiple',
+            nivel: 'intermedio',
+            pregunta: "¿Qué es la integridad referencial?",
+            opciones: ["Clave foránea válida", "Datos consistentes", "Claves primarias no nulas", "Datos únicos"],
+            respuestaCorrecta: 0,
+            feedback: "Correcto. La integridad referencial asegura que los valores de clave foránea sean válidos."
           }
         ],
         'sql': [
@@ -839,6 +877,32 @@
             opciones: ["Structured Query Language", "Standard Query Language", "Simple Query Language", "System Query Language"],
             respuestaCorrecta: 0,
             feedback: "SQL significa Structured Query Language."
+          },
+          {
+            id: 'cont_sql_2',
+            tipo: 'vf',
+            nivel: 'básico',
+            pregunta: "GRANT se utiliza para otorgar permisos en SQL.",
+            respuestaCorrecta: true,
+            feedback: "Correcto. GRANT otorga permisos a usuarios."
+          },
+          {
+            id: 'cont_sql_3',
+            tipo: 'completacion',
+            nivel: 'básico',
+            pregunta: "DML significa ______________.",
+            respuestaCorrecta: "Data Manipulation Language",
+            opciones: ["Data Manipulation Language", "Data Definition Language", "Data Control Language"],
+            feedback: "Correcto. DML significa Data Manipulation Language."
+          },
+          {
+            id: 'cont_sql_4',
+            tipo: 'multiple',
+            nivel: 'intermedio',
+            pregunta: "¿Qué comando SQL se utiliza para retirar permisos?",
+            opciones: ["GRANT", "REVOKE", "DROP", "DELETE"],
+            respuestaCorrecta: 1,
+            feedback: "Correcto. REVOKE retira permisos a usuarios."
           }
         ],
         'diseno': [
@@ -850,6 +914,32 @@
             opciones: ["Acelera búsquedas", "Almacena datos", "Crea copias de seguridad", "Gestiona usuarios"],
             respuestaCorrecta: 0,
             feedback: "Un índice acelera la búsqueda de datos."
+          },
+          {
+            id: 'cont_dis_2',
+            tipo: 'vf',
+            nivel: 'básico',
+            pregunta: "La desnormalización introduce redundancia controlada.",
+            respuestaCorrecta: true,
+            feedback: "Correcto. La desnormalización introduce redundancia controlada."
+          },
+          {
+            id: 'cont_dis_3',
+            tipo: 'completacion',
+            nivel: 'básico',
+            pregunta: "La ______________ divide una tabla grande en partes más pequeñas.",
+            respuestaCorrecta: "particionamiento",
+            opciones: ["particionamiento", "normalización", "indexación"],
+            feedback: "Correcto. El particionamiento divide una tabla grande en partes más pequeñas."
+          },
+          {
+            id: 'cont_dis_4',
+            tipo: 'multiple',
+            nivel: 'intermedio',
+            pregunta: "¿Qué es la denormalización?",
+            opciones: ["Redundancia controlada", "Eliminar formas normales", "Crear más tablas", "Aplicar formas normales"],
+            respuestaCorrecta: 0,
+            feedback: "Correcto. La denormalización introduce redundancia controlada para mejorar rendimiento."
           }
         ],
         'tools': [
@@ -861,6 +951,32 @@
             opciones: ["SGBD relacional", "Base de datos NoSQL", "Lenguaje de programación", "Herramienta de diseño"],
             respuestaCorrecta: 0,
             feedback: "PostgreSQL es un SGBD relacional."
+          },
+          {
+            id: 'cont_tools_2',
+            tipo: 'vf',
+            nivel: 'básico',
+            pregunta: "MongoDB es una base de datos NoSQL orientada a documentos.",
+            respuestaCorrecta: true,
+            feedback: "Correcto. MongoDB es una base de datos NoSQL orientada a documentos."
+          },
+          {
+            id: 'cont_tools_3',
+            tipo: 'completacion',
+            nivel: 'básico',
+            pregunta: "_____________ es una herramienta para diseñar diagramas ER.",
+            respuestaCorrecta: "Lucidchart",
+            opciones: ["Lucidchart", "DbSchema", "Miro"],
+            feedback: "Correcto. Lucidchart es una herramienta para diseñar diagramas ER."
+          },
+          {
+            id: 'cont_tools_4',
+            tipo: 'multiple',
+            nivel: 'intermedio',
+            pregunta: "¿Qué es DDL en SQL?",
+            opciones: ["Data Definition Language", "Data Manipulation Language", "Data Control Language", "Data Query Language"],
+            respuestaCorrecta: 0,
+            feedback: "Correcto. DDL significa Data Definition Language."
           }
         ]
       };
@@ -914,8 +1030,8 @@
       db.endedAt = new Date().toISOString();
       
       let level = 'Básico';
-      if (db.score >= 20) level = 'Avanzado';
-      else if (db.score >= 12) level = 'Intermedio';
+      if (db.score >= 16) level = 'Avanzado';
+      else if (db.score >= 10) level = 'Intermedio';
       db.level = level;
 
       state.textContent = 'Completado';

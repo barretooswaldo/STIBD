@@ -81,14 +81,17 @@
     .chat-container { display: flex; flex-direction: column; gap: 10px; }
     .chat-messages { background: var(--glass); border: 1px solid var(--line); border-radius: 12px; padding: 15px; min-height: 300px; max-height: 400px; overflow-y: auto; color: var(--text); }
     .chat-messages .user { text-align: right; color: var(--a1); margin: 8px 0; }
-    .chat-messages .bot { text-align: left; color: var(--a3); margin: 8px 0; }
-    .chat-messages .loading { text-align: left; color: var(--muted); margin: 8px 0; }
+    .chat-messages .bot { text-align: left; color: #4ade80; margin: 8px 0; }
+    .chat-messages .bot strong { color: #86efac; }
+    .chat-messages .loading { text-align: left; color: var(--muted); margin: 8px 0; font-style: italic; }
     .chat-messages .error { text-align: left; color: #f87171; margin: 8px 0; }
+    .chat-messages .system { text-align: center; color: var(--a4); margin: 8px 0; font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 10px; }
     .chat-input-row { display: flex; gap: 10px; }
     .chat-input-row input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--glass); color: #fff; font-size: 1rem; outline: none; }
     .chat-input-row input:focus { border-color: var(--a1); }
+    .chat-input-row input:disabled { opacity: 0.5; cursor: not-allowed; }
     .chat-input-row button { padding: 12px 24px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--a1), var(--a2)); color: #fff; font-weight: bold; cursor: pointer; transition: all 0.3s; }
-    .chat-input-row button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4); }
+    .chat-input-row button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4); }
     .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
     .btn-home {
@@ -125,6 +128,19 @@
       stroke-width: 2;
       stroke-linecap: round;
       stroke-linejoin: round;
+    }
+
+    /* Estilos para el historial de chat */
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-messages::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 3px;
+    }
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--a2);
+      border-radius: 3px;
     }
 
   </style>
@@ -168,7 +184,6 @@
   // ============================================================
   // CONFIGURACIÓN
   // ============================================================
-  //const PROXY_URL = "../proxy.php";
   const SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbyhL7BAwoDtJLw6YsPMKwtYIubPno3MLPVthpAeDrRyoS_lwI8DOr00Xw58wGi90aaHiQ/exec";
 
   // ============================================================
@@ -204,6 +219,7 @@
   let isWaitingForResponse = false;
   let studentCedula = "";
   let progresoTemas = {};
+  let historialChat = []; // Para mantener contexto del chat
 
   // ============================================================
   // FUNCIÓN PARA OBTENER EL VALOR DE UN TEMA DESDE LOCALSTORAGE
@@ -810,7 +826,7 @@
   }
 
   // ============================================================
-  // MÓDULO CHATBOT CON GEMINI (NUEVO)
+  // MÓDULO CHATBOT CON GEMINI (CORREGIDO)
   // ============================================================
   function loadChatbotModule() {
     if (countdownInterval) clearInterval(countdownInterval);
@@ -827,7 +843,10 @@
       
       <div class="chat-container">
         <div class="chat-messages" id="chatConversation">
-          <p style="color:var(--muted); text-align:center;">💬 Haz una pregunta sobre bases de datos</p>
+          <div class="system">💬 Bienvenido al Chatbot. Pregunta sobre bases de datos, SQL, diseño, optimización o SGBD.</div>
+          ${historialChat.length > 0 ? historialChat.map(msg => 
+            `<div class="${msg.role === 'user' ? 'user' : 'bot'}">${msg.role === 'user' ? '👤' : '🤖'} ${msg.content}</div>`
+          ).join('') : ''}
         </div>
         
         <div class="chat-input-row">
@@ -845,11 +864,13 @@
     });
     
     // Enfocar el input automáticamente
-    document.getElementById('chatInput').focus();
+    setTimeout(() => {
+      document.getElementById('chatInput').focus();
+    }, 100);
   }
 
   // ============================================================
-  // FUNCIÓN PARA ENVIAR PREGUNTA A GEMINI
+  // FUNCIÓN PARA ENVIAR PREGUNTA A GEMINI (CORREGIDA)
   // ============================================================
   async function enviarPreguntaGemini() {
     const input = document.getElementById('chatInput');
@@ -859,26 +880,52 @@
     
     if (!pregunta) return;
     
-    // Deshabilitar botón mientras se procesa
+    // Deshabilitar controles mientras se procesa
     sendBtn.disabled = true;
     sendBtn.textContent = '⏳ Enviando...';
+    input.disabled = true;
     
     // Mostrar pregunta del usuario
-    conversation.innerHTML += `<div class="user">👤 ${pregunta}</div>`;
+    const userMsg = document.createElement('div');
+    userMsg.className = 'user';
+    userMsg.textContent = `👤 ${pregunta}`;
+    conversation.appendChild(userMsg);
     input.value = '';
     conversation.scrollTop = conversation.scrollHeight;
     
+    // Guardar en historial local
+    historialChat.push({ role: 'user', content: pregunta });
+    
     // Mostrar indicador de carga
     const loadingId = 'loading_' + Date.now();
-    conversation.innerHTML += `<div class="loading" id="${loadingId}">⏳ Gemini está pensando...</div>`;
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = 'loading';
+    loadingMsg.id = loadingId;
+    loadingMsg.textContent = '⏳ Gemini está pensando...';
+    conversation.appendChild(loadingMsg);
     conversation.scrollTop = conversation.scrollHeight;
     
     try {
+      // Preparar el contexto del chat (últimos mensajes para mantener contexto)
+      const contextoChat = historialChat.slice(-6).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+      
       const payload = {
         action: "CHAT_WITH_GEMINI",
         message: pregunta,
-        context: "Eres un asistente experto en Bases de Datos. Responde preguntas sobre: Introducción a BD, Modelo Relacional, SQL, Diseño de BD, Optimización, SGBD y Herramientas. Sé claro, conciso y educativo."
+        context: "Eres un asistente experto en Bases de Datos. Responde preguntas sobre: Introducción a BD, Modelo Relacional, SQL, Diseño de BD, Optimización, SGBD y Herramientas. Sé claro, conciso y educativo.",
+        history: contextoChat,
+        // Añadir información del estudiante para personalizar
+        student: {
+          name: localStorage.getItem('sti_student_name') || '',
+          level: localStorage.getItem('sti_student_level') || '',
+          completedThemes: THEMES_LIST.filter(t => progresoTemas[t] >= 100)
+        }
       };
+      
+      console.log("📤 Enviando pregunta a Gemini:", { pregunta, contexto: contextoChat.length });
       
       const response = await fetch(SCRIPT_BASE_URL, {
         method: 'POST',
@@ -886,24 +933,59 @@
         body: JSON.stringify(payload)
       });
       
-      const data = await response.json();
-      
       // Eliminar indicador de carga
-      document.getElementById(loadingId)?.remove();
+      const loadingEl = document.getElementById(loadingId);
+      if (loadingEl) loadingEl.remove();
+      
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("📥 Respuesta de Gemini:", data);
       
       if (data.status === "success" && data.response) {
-        conversation.innerHTML += `<div class="bot">🤖 ${data.response}</div>`;
+        // Formatear la respuesta con saltos de línea
+        const respuestaFormateada = data.response.replace(/\n/g, '<br>');
+        const botMsg = document.createElement('div');
+        botMsg.className = 'bot';
+        botMsg.innerHTML = `🤖 ${respuestaFormateada}`;
+        conversation.appendChild(botMsg);
+        
+        // Guardar en historial
+        historialChat.push({ role: 'bot', content: data.response });
       } else {
-        conversation.innerHTML += `<div class="error">❌ Error: ${data.message || 'No se pudo obtener respuesta'}</div>`;
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'error';
+        errorMsg.textContent = `❌ Error: ${data.message || 'No se pudo obtener respuesta'}`;
+        conversation.appendChild(errorMsg);
       }
     } catch (error) {
-      document.getElementById(loadingId)?.remove();
-      conversation.innerHTML += `<div class="error">❌ Error de conexión: ${error.message}</div>`;
+      // Eliminar indicador de carga
+      const loadingEl = document.getElementById(loadingId);
+      if (loadingEl) loadingEl.remove();
+      
+      console.error("❌ Error en chat:", error);
+      
+      // Mostrar mensaje de error amigable
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'error';
+      errorMsg.textContent = `❌ Error de conexión: ${error.message}. Por favor, intenta de nuevo.`;
+      conversation.appendChild(errorMsg);
+      
+      // Si el error es de conexión, ofrecer ayuda local
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        const helpMsg = document.createElement('div');
+        helpMsg.className = 'system';
+        helpMsg.textContent = '💡 Sugerencia: Verifica tu conexión a internet. El chatbot requiere conexión para funcionar.';
+        conversation.appendChild(helpMsg);
+      }
     }
     
-    // Restaurar botón
+    // Restaurar controles
     sendBtn.disabled = false;
     sendBtn.textContent = 'Enviar';
+    input.disabled = false;
     conversation.scrollTop = conversation.scrollHeight;
     
     // Enfocar input nuevamente

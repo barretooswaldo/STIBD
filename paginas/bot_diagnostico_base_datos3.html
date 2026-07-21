@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -6,8 +6,8 @@
   <title>Bot Diagnóstico Inteligente - Base de Datos</title>
   <style>
     :root{
-      --bg1:#040817;
-      --bg2:#0b1530;
+      --bg1:#0b280a;
+      --bg2:#1a450e;
       --glass:rgba(255,255,255,.08);
       --line:rgba(255,255,255,.12);
       --text:#eaf2ff;
@@ -44,7 +44,6 @@
       flex-direction:column;
       overflow:hidden;
       backdrop-filter:blur(20px);
-      position:relative;
     }
     .chat-header{
       padding:20px 24px;
@@ -175,8 +174,6 @@
       border-color:var(--a1);
     }
     .option-eval-btn:disabled{cursor:not-allowed;opacity:0.6}
-    .option-eval-btn.correct{background:rgba(34,197,94,0.2);border-color:var(--a3)}
-    .option-eval-btn.incorrect{background:rgba(239,68,68,0.2);border-color:#f87171}
     .summary{display:grid;gap:12px;margin-top:12px}
     .sum-card{
       background:rgba(255,255,255,.06);
@@ -308,8 +305,8 @@
       background: var(--glass);
       border: 1px solid var(--line);
       border-radius: 50%;
-      width: 38px;
-      height: 38px;
+      width: 44px;
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -317,8 +314,7 @@
       transition: all 0.3s ease;
       text-decoration: none;
       color: var(--text);
-      font-size: 1rem;
-      z-index: 10;
+      font-size: 1.2rem;
     }
 
     .btn-home:hover {
@@ -328,34 +324,13 @@
       box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
     }
     .btn-home svg {
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       fill: none;
       stroke: currentColor;
       stroke-width: 2;
       stroke-linecap: round;
       stroke-linejoin: round;
-    }
-    .badge-nivel {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      margin-left: 8px;
-    }
-    .badge-nivel.basico { background: rgba(56,189,248,0.2); color: var(--a1); }
-    .badge-nivel.intermedio { background: rgba(245,158,11,0.2); color: #f59e0b; }
-    .badge-nivel.avanzado { background: rgba(239,68,68,0.2); color: #f87171; }
-    .badge-tipo {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      background: rgba(139,92,246,0.2);
-      color: var(--a2);
-      margin-left: 8px;
     }
 
     @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-5px);opacity:1}}
@@ -442,6 +417,7 @@
     let preguntaActual = null;
     let soundOn = true;
     let isEsperandoRespuesta = false;
+    let moduloFinalizado = false;
 
     // ============================================================
     // DOM REFERENCIAS
@@ -570,7 +546,16 @@
         case 5:
           db.student.id = v;
           currentProfileStep = 6;
+          
+          // 🔥 CORRECCIÓN: Guardar TODOS los datos del estudiante en localStorage
+          // con las claves que espera ruta_aprendizaje.html
           localStorage.setItem('sti_student_id', db.student.id);
+          localStorage.setItem('sti_student_name', db.student.name);
+          localStorage.setItem('sti_student_lastname', db.student.lastname);
+          localStorage.setItem('sti_student_career', db.student.career);
+          localStorage.setItem('sti_student_section', db.student.section);
+          localStorage.setItem('sti_student_fullname', `${db.student.name} ${db.student.lastname}`);
+          
           state.textContent = 'En línea';
           row(`¡Registro Exitoso! Bienvenido **${db.student.name} ${db.student.lastname}**. Iniciaremos el diagnóstico adaptativo con ${TOTAL_PREGUNTAS} preguntas (4 por módulo). ¡Comencemos!`, 'bot');
           setTimeout(iniciarDiagnostico, 1500);
@@ -584,6 +569,7 @@
     function iniciarDiagnostico() {
       currentModuloIndex = 0;
       preguntasRespondidasModulo = 0;
+      moduloFinalizado = false;
       cargarSiguienteModulo();
     }
 
@@ -598,17 +584,20 @@
 
       const moduloActual = MODULOS_STI[currentModuloIndex];
       preguntasRespondidasModulo = 0;
+      moduloFinalizado = false;
       
       // Seleccionar preguntas adaptativas para este módulo
+      const historialModulo = db.historialPreguntas.filter(h => h.modulo === moduloActual.id);
       preguntasModuloActual = seleccionarPreguntasAdaptativas(
         moduloActual.id,
-        db.historialPreguntas.filter(h => h.modulo === moduloActual.id),
+        historialModulo,
         PREGUNTAS_POR_MODULO
       );
       
       state.textContent = `Evaluando Módulo ${currentModuloIndex + 1}/5 - ${moduloActual.id}`;
       
-      if (preguntasModuloActual.length === 0) {
+      // Verificar que haya preguntas
+      if (!preguntasModuloActual || preguntasModuloActual.length === 0) {
         row(`⚠️ No se encontraron preguntas para ${moduloActual.id}. Usando preguntas de contingencia.`, 'bot');
         preguntasModuloActual = generarPreguntasContingencia(moduloActual.clave, PREGUNTAS_POR_MODULO);
       }
@@ -619,16 +608,30 @@
 
       row(`📚 **${moduloActual.id}** - Responderás ${preguntasModuloActual.length} preguntas.`, 'bot');
       
-      setTimeout(mostrarPregunta, 1000);
+      // Mostrar la primera pregunta después de un breve delay
+      setTimeout(mostrarPregunta, 1500);
     }
 
     // ============================================================
     // MOSTRAR PREGUNTA
     // ============================================================
     function mostrarPregunta() {
+      // Verificar si el módulo actual ya se completó
+      if (moduloFinalizado) return;
+      
+      // Verificar si ya respondimos todas las preguntas del módulo actual
       if (preguntasRespondidasModulo >= preguntasModuloActual.length) {
+        moduloFinalizado = true;
         currentModuloIndex++;
-        setTimeout(cargarSiguienteModulo, 1000);
+        setTimeout(cargarSiguienteModulo, 1500);
+        return;
+      }
+
+      // Verificar que haya una pregunta disponible
+      if (!preguntasModuloActual || preguntasModuloActual.length === 0) {
+        moduloFinalizado = true;
+        currentModuloIndex++;
+        setTimeout(cargarSiguienteModulo, 1500);
         return;
       }
 
@@ -786,11 +789,12 @@
       preguntasRespondidasModulo++;
       setProgress();
       
+      // Esperar antes de mostrar la siguiente pregunta
       setTimeout(mostrarPregunta, 3500);
     }
 
     // ============================================================
-    // PREGUNTAS DE CONTINGENCIA
+    // PREGUNTAS DE CONTINGENCIA (con 4 preguntas por módulo)
     // ============================================================
     function generarPreguntasContingencia(clave, cantidad) {
       const preguntasBase = {
@@ -990,41 +994,28 @@
     }
 
     // ============================================================
-    // GENERAR PLAN DE RUTA
+    // FUNCIONES AUXILIARES PARA ETIQUETAS
     // ============================================================
-    function generarPlanDeRuta(nivel) {
-      let htmlPlan = `<div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                        <h4 style="margin:0 0 8px; color:var(--a1);">🗺️ Ruta Adaptativa para el Estudiante:</h4>
-                        <ul style="margin:0; padding-left:20px; font-size:0.88rem; color:var(--muted); line-height:1.6;">`;
-      
-      const pctIntro = themePct('intro');
-      const pctRel = themePct('relacional');
-      const pctSql = themePct('sql');
-      const pctDis = themePct('diseno');
-      const pctTools = themePct('tools');
+    function getNivelTexto(nivel) {
+      const map = {
+        'básico': 'Básico',
+        'intermedio': 'Intermedio',
+        'avanzado': 'Avanzado'
+      };
+      return map[nivel] || nivel;
+    }
 
-      if (nivel === 'Básico') {
-        htmlPlan += `<li><strong>Nivelación Obligatoria:</strong> Repasar conceptos del Módulo 1 (Arquitectura ANSI-SPARC e Independencia de Datos).</li>`;
-        htmlPlan += `<li><strong>Refuerzo Lógico:</strong> Ejercicios guiados de Transformación de MER a tablas relacionales antes de utilizar código.</li>`;
-      } else if (nivel === 'Intermedio') {
-        if (pctRel < 75 || pctDis < 75) {
-          htmlPlan += `<li><strong>Eje de Diseño:</strong> Reforzar las Formas Normales (1FN a 3FN) y Dependencias Transitivas para mitigar anomalías.</li>`;
-        }
-        if (pctSql < 75) {
-          htmlPlan += `<li><strong>Eje Sintáctico:</strong> Prácticas intensivas de consultas multitabla empleando Cláusulas JOIN y Funciones de Agregación.</li>`;
-        }
-        htmlPlan += `<li><strong>Avance Secuencial:</strong> Autorizado para iniciar laboratorios del Módulo 5 (MySQL) y Módulo 6 (PostgreSQL).</li>`;
-      } else {
-        htmlPlan += `<li><strong>Fase Avanzada Directa:</strong> Exención de contenidos descriptivos básicos. Foco en optimización física de consultas y planes de ejecución.</li>`;
-        htmlPlan += `<li><strong>Lógica Procedimental:</strong> Desarrollo avanzado de Triggers y automatización de lógica interna mediante funciones en PL/pgSQL.</li>`;
-      }
-      
-      htmlPlan += `</ul></div>`;
-      return htmlPlan;
+    function getTipoTexto(tipo) {
+      const map = {
+        'multiple': 'Opción Múltiple',
+        'vf': 'Verdadero/Falso',
+        'completacion': 'Completación'
+      };
+      return map[tipo] || tipo;
     }
 
     // ============================================================
-    // FINALIZAR EVALUACIÓN
+    // FINALIZAR EVALUACIÓN Y GUARDAR EN GOOGLE SHEETS
     // ============================================================
     function finalizarEvaluacion() {
       db.endedAt = new Date().toISOString();
@@ -1106,6 +1097,16 @@
 
       // EVENTOS DE BOTONES
       document.getElementById('routeBtn').onclick = () => {
+        // 🔥 CORRECCIÓN: Asegurar que los datos estén en localStorage antes de navegar
+        localStorage.setItem('sti_student_id', db.student.id);
+        localStorage.setItem('sti_student_name', db.student.name);
+        localStorage.setItem('sti_student_lastname', db.student.lastname);
+        localStorage.setItem('sti_student_career', db.student.career);
+        localStorage.setItem('sti_student_section', db.student.section);
+        localStorage.setItem('sti_student_fullname', `${db.student.name} ${db.student.lastname}`);
+        localStorage.setItem('sti_student_level', db.level);
+        localStorage.setItem('sti_student_score', db.score);
+        
         window.location.href = 'ruta_aprendizaje.html';
       };
 
@@ -1176,6 +1177,40 @@
           scrollBottom();
         });
       }
+    }
+
+    // ============================================================
+    // GENERAR PLAN DE RUTA
+    // ============================================================
+    function generarPlanDeRuta(nivel) {
+      let htmlPlan = `<div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                        <h4 style="margin:0 0 8px; color:var(--a1);">🗺️ Ruta Adaptativa para el Estudiante:</h4>
+                        <ul style="margin:0; padding-left:20px; font-size:0.88rem; color:var(--muted); line-height:1.6;">`;
+      
+      const pctIntro = themePct('intro');
+      const pctRel = themePct('relacional');
+      const pctSql = themePct('sql');
+      const pctDis = themePct('diseno');
+      const pctTools = themePct('tools');
+
+      if (nivel === 'Básico') {
+        htmlPlan += `<li><strong>Nivelación Obligatoria:</strong> Repasar conceptos del Módulo 1 (Arquitectura ANSI-SPARC e Independencia de Datos).</li>`;
+        htmlPlan += `<li><strong>Refuerzo Lógico:</strong> Ejercicios guiados de Transformación de MER a tablas relacionales antes de utilizar código.</li>`;
+      } else if (nivel === 'Intermedio') {
+        if (pctRel < 75 || pctDis < 75) {
+          htmlPlan += `<li><strong>Eje de Diseño:</strong> Reforzar las Formas Normales (1FN a 3FN) y Dependencias Transitivas para mitigar anomalías.</li>`;
+        }
+        if (pctSql < 75) {
+          htmlPlan += `<li><strong>Eje Sintáctico:</strong> Prácticas intensivas de consultas multitabla empleando Cláusulas JOIN y Funciones de Agregación.</li>`;
+        }
+        htmlPlan += `<li><strong>Avance Secuencial:</strong> Autorizado para iniciar laboratorios del Módulo 5 (MySQL) y Módulo 6 (PostgreSQL).</li>`;
+      } else {
+        htmlPlan += `<li><strong>Fase Avanzada Directa:</strong> Exención de contenidos descriptivos básicos. Foco en optimización física de consultas y planes de ejecución.</li>`;
+        htmlPlan += `<li><strong>Lógica Procedimental:</strong> Desarrollo avanzado de Triggers y automatización de lógica interna mediante funciones en PL/pgSQL.</li>`;
+      }
+      
+      htmlPlan += `</ul></div>`;
+      return htmlPlan;
     }
 
     // ============================================================

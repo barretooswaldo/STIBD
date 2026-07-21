@@ -5,10 +5,12 @@
 // ============================================================
 
 // ============================================================
-// SELECCIONAR PREGUNTAS PARA EL DIAGNÓSTICO
+// SELECCIONAR PREGUNTAS PARA EL DIAGNÓSTICO (VERSIÓN CORREGIDA)
 // ============================================================
-function seleccionarPreguntasDiagnostico(modulo, cantidadPorNivel) {
-  // cantidadPorNivel = { basico: 2, intermedio: 2, avanzado: 1 }
+function seleccionarPreguntasDiagnostico(modulo, cantidadPorNivel, tiposRequeridos) {
+  // cantidadPorNivel = { basico: 2, intermedio: 1, avanzado: 1 }
+  // tiposRequeridos = ['multiple', 'completacion', 'vf']
+  
   const preguntasSeleccionadas = [];
   const usadas = new Set();
   
@@ -16,42 +18,63 @@ function seleccionarPreguntasDiagnostico(modulo, cantidadPorNivel) {
   const preguntasModulo = BASE_CONOCIMIENTO_DIAGNOSTICO[modulo];
   if (!preguntasModulo) return [];
   
-  // Tipos de preguntas: multiple, completacion, vf
-  const tipos = ['multiple', 'completacion', 'vf'];
+  // Para cada nivel, seleccionar preguntas de diferentes tipos
+  const niveles = ['básico', 'intermedio', 'avanzado'];
   
-  // Por cada tipo, seleccionar preguntas de cada nivel
-  tipos.forEach(tipo => {
-    const preguntasTipo = preguntasModulo.preguntas[tipo] || [];
+  niveles.forEach(nivel => {
+    const cantidad = cantidadPorNivel[nivel] || 1;
+    if (cantidad === 0) return;
     
-    // Filtrar por nivel
-    const niveles = ['básico', 'intermedio', 'avanzado'];
-    niveles.forEach(nivel => {
-      const disponibles = preguntasTipo.filter(p => 
+    // Obtener todas las preguntas de este nivel (de todos los tipos)
+    let preguntasNivel = [];
+    
+    // Recorrer los tipos de preguntas
+    const tipos = tiposRequeridos || ['multiple', 'completacion', 'vf'];
+    
+    tipos.forEach(tipo => {
+      const preguntasTipo = preguntasModulo.preguntas[tipo] || [];
+      const filtradas = preguntasTipo.filter(p => 
         p.nivel === nivel && !usadas.has(p.id)
       );
-      
-      // Mezclar disponibles
-      const mezcladas = mezclarArray(disponibles);
-      
-      // Seleccionar la cantidad indicada
-      const cantidad = cantidadPorNivel[nivel] || 1;
-      const seleccionadas = mezcladas.slice(0, cantidad);
-      
-      seleccionadas.forEach(p => {
-        usadas.add(p.id);
-        preguntasSeleccionadas.push(p);
-      });
+      preguntasNivel = preguntasNivel.concat(filtradas);
+    });
+    
+    // Mezclar y seleccionar la cantidad requerida
+    const mezcladas = mezclarArray(preguntasNivel);
+    const seleccionadas = mezcladas.slice(0, cantidad);
+    
+    seleccionadas.forEach(p => {
+      usadas.add(p.id);
+      preguntasSeleccionadas.push(p);
     });
   });
+  
+  // Si no se seleccionaron suficientes preguntas, buscar cualquier pregunta disponible
+  if (preguntasSeleccionadas.length < 4) {
+    const todasLasPreguntas = [];
+    const tipos = ['multiple', 'completacion', 'vf'];
+    tipos.forEach(tipo => {
+      const preguntasTipo = preguntasModulo.preguntas[tipo] || [];
+      const filtradas = preguntasTipo.filter(p => !usadas.has(p.id));
+      todasLasPreguntas.push(...filtradas);
+    });
+    
+    const mezcladas = mezclarArray(todasLasPreguntas);
+    const faltantes = 4 - preguntasSeleccionadas.length;
+    for (let i = 0; i < Math.min(faltantes, mezcladas.length); i++) {
+      preguntasSeleccionadas.push(mezcladas[i]);
+    }
+  }
   
   return preguntasSeleccionadas;
 }
 
 // ============================================================
-// SELECCIONAR PREGUNTAS ADAPTATIVAS SEGÚN RENDIMIENTO
+// SELECCIONAR PREGUNTAS ADAPTATIVAS (VERSIÓN CORREGIDA)
 // ============================================================
-function seleccionarPreguntasAdaptativas(modulo, historial, totalPreguntas = 5) {
+function seleccionarPreguntasAdaptativas(modulo, historial, totalPreguntas = 4) {
   // historial: array de { preguntaId, correcta, nivel }
+  
   // Calcular rendimiento por nivel
   const rendimiento = {
     basico: { aciertos: 0, total: 0 },
@@ -71,41 +94,50 @@ function seleccionarPreguntasAdaptativas(modulo, historial, totalPreguntas = 5) 
   const pctBasico = rendimiento.basico.total > 0 ? (rendimiento.basico.aciertos / rendimiento.basico.total) * 100 : 0;
   const pctIntermedio = rendimiento.intermedio.total > 0 ? (rendimiento.intermedio.aciertos / rendimiento.intermedio.total) * 100 : 0;
   
-  if (pctBasico >= 80 && rendimiento.basico.total >= 2) {
+  // Subir de nivel si tiene buen rendimiento en el nivel actual
+  if (pctBasico >= 70 && rendimiento.basico.total >= 2) {
     nivelActual = 'intermedio';
   }
-  if (pctIntermedio >= 80 && rendimiento.intermedio.total >= 2) {
+  if (pctIntermedio >= 70 && rendimiento.intermedio.total >= 2) {
     nivelActual = 'avanzado';
   }
   
-  // Seleccionar preguntas según el nivel actual
+  // Distribución de preguntas por nivel (4 preguntas en total)
   const distribucion = {
-    'basico': { basico: 3, intermedio: 2, avanzado: 0 },
-    'intermedio': { basico: 1, intermedio: 3, avanzado: 1 },
-    'avanzado': { basico: 0, intermedio: 2, avanzado: 3 }
+    'basico': { basico: 3, intermedio: 1, avanzado: 0 },
+    'intermedio': { basico: 1, intermedio: 2, avanzado: 1 },
+    'avanzado': { basico: 0, intermedio: 2, avanzado: 2 }
   };
   
   const cantidades = distribucion[nivelActual] || distribucion['basico'];
   
+  // Tipos de preguntas que queremos incluir (al menos uno de cada tipo)
+  const tiposRequeridos = ['multiple', 'completacion', 'vf'];
+  
   // Seleccionar preguntas
-  const seleccionadas = seleccionarPreguntasDiagnostico(modulo, cantidades);
+  const seleccionadas = seleccionarPreguntasDiagnostico(modulo, cantidades, tiposRequeridos);
   
   // Asegurar que tenemos exactamente totalPreguntas
   while (seleccionadas.length < totalPreguntas) {
-    // Si faltan, agregar preguntas de contingencia
     const preguntasModulo = BASE_CONOCIMIENTO_DIAGNOSTICO[modulo];
     if (preguntasModulo) {
-      const todosTipos = [...preguntasModulo.preguntas.multiple || [], ...preguntasModulo.preguntas.completacion || [], ...preguntasModulo.preguntas.vf || []];
+      const todosTipos = [];
+      ['multiple', 'completacion', 'vf'].forEach(tipo => {
+        const preguntas = preguntasModulo.preguntas[tipo] || [];
+        todosTipos.push(...preguntas);
+      });
       const noUsadas = todosTipos.filter(p => !seleccionadas.some(s => s.id === p.id));
       if (noUsadas.length > 0) {
         seleccionadas.push(noUsadas[Math.floor(Math.random() * noUsadas.length)]);
       } else {
         break;
       }
+    } else {
+      break;
     }
   }
   
-  return seleccionadas;
+  return seleccionadas.slice(0, totalPreguntas);
 }
 
 // ============================================================
@@ -115,16 +147,13 @@ function evaluarRespuestaDiagnostico(pregunta, respuestaUsuario) {
   let correcta = false;
   
   if (pregunta.tipo === 'vf') {
-    // Verdadero/Falso
     const respuestaBool = respuestaUsuario === 'true' || respuestaUsuario === true;
     correcta = pregunta.respuestaCorrecta === respuestaBool;
   } else if (pregunta.tipo === 'completacion') {
-    // Completación: comparar ignorando mayúsculas/minúsculas y espacios
     const respuestaNormalizada = respuestaUsuario.trim().toLowerCase();
     const correctaNormalizada = pregunta.respuestaCorrecta.trim().toLowerCase();
     correcta = respuestaNormalizada === correctaNormalizada;
   } else {
-    // Selección múltiple
     correcta = respuestaUsuario === pregunta.respuestaCorrecta;
   }
   

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -18,7 +18,11 @@
       --u1:#2563eb;
       --u2:#06b6d4;
       --shadow:0 20px 60px rgba(0,0,0,.45);
-      --r:26px
+      --r:26px;
+      --correct-bg: rgba(34, 197, 94, 0.25);
+      --correct-border: #22c55e;
+      --incorrect-bg: rgba(239, 68, 68, 0.25);
+      --incorrect-border: #ef4444;
     }
     *{box-sizing:border-box}
     body{
@@ -123,6 +127,39 @@
       border-top-right-radius:4px;
       box-shadow:0 4px 15px rgba(37,99,235,0.2);
     }
+    /* Mensajes de resultado con colores vistosos */
+    .msg-row.correct .msg-bubble {
+      background: var(--correct-bg);
+      border: 2px solid var(--correct-border);
+      border-top-left-radius: 4px;
+      box-shadow: 0 0 30px rgba(34, 197, 94, 0.2);
+      font-weight: 600;
+    }
+    .msg-row.incorrect .msg-bubble {
+      background: var(--incorrect-bg);
+      border: 2px solid var(--incorrect-border);
+      border-top-left-radius: 4px;
+      box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
+      font-weight: 600;
+    }
+    .msg-row.correct .msg-bubble .result-icon {
+      font-size: 1.8rem;
+      margin-right: 10px;
+      display: inline-block;
+    }
+    .msg-row.incorrect .msg-bubble .result-icon {
+      font-size: 1.8rem;
+      margin-right: 10px;
+      display: inline-block;
+    }
+    .msg-row.correct .msg-bubble .result-text {
+      color: #4ade80;
+      font-size: 1.1rem;
+    }
+    .msg-row.incorrect .msg-bubble .result-text {
+      color: #f87171;
+      font-size: 1.1rem;
+    }
     .chat-input-area{
       padding:20px 24px;
       background:rgba(0,0,0,0.2);
@@ -174,6 +211,14 @@
       border-color:var(--a1);
     }
     .option-eval-btn:disabled{cursor:not-allowed;opacity:0.6}
+    .option-eval-btn.correct {
+      border-color: #22c55e;
+      background: rgba(34, 197, 94, 0.15);
+    }
+    .option-eval-btn.incorrect {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+    }
     .summary{display:grid;gap:12px;margin-top:12px}
     .sum-card{
       background:rgba(255,255,255,.06);
@@ -333,6 +378,28 @@
       stroke-linejoin: round;
     }
 
+    .badge-nivel {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+    .badge-nivel.básico { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+    .badge-nivel.intermedio { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+    .badge-nivel.avanzado { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+    .badge-tipo {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(56, 189, 248, 0.10);
+      color: #7dd3fc;
+    }
+
     @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.45}40%{transform:translateY(-5px);opacity:1}}
   </style>
   <script src="../js/base_conocimiento_diagnostico.js"></script>
@@ -377,7 +444,7 @@
     // ============================================================
     // CONFIGURACIÓN
     // ============================================================
-    const SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbyhL7BAwoDtJLw6YsPMKwtYIubPno3MLPVthpAeDrRyoS_lwI8DOr00Xw58wGi90aaHiQ/execc";
+    const SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbyhL7BAwoDtJLw6YsPMKwtYIubPno3MLPVthpAeDrRyoS_lwI8DOr00Xw58wGi90aaHiQ/exec";
     const ACTIVE_SHEET_NAME = localStorage.getItem('sti_active_sheet_name') || "Datossti";
     const TOTAL_PREGUNTAS = 20;
     const PREGUNTAS_POR_MODULO = 4;
@@ -457,6 +524,18 @@
       b.className = 'msg-bubble';
       if (html) b.innerHTML = text;
       else b.textContent = text;
+      r.appendChild(b);
+      chatbox.appendChild(r);
+      scrollBottom();
+    }
+
+    // Nueva función para mensajes de resultado con colores vistosos
+    function resultRow(icon, text, isCorrect) {
+      const r = document.createElement('div');
+      r.className = `msg-row bot ${isCorrect ? 'correct' : 'incorrect'}`;
+      const b = document.createElement('div');
+      b.className = 'msg-bubble';
+      b.innerHTML = `<span class="result-icon">${icon}</span><span class="result-text">${text}</span>`;
       r.appendChild(b);
       chatbox.appendChild(r);
       scrollBottom();
@@ -547,8 +626,7 @@
           db.student.id = v;
           currentProfileStep = 6;
           
-          // 🔥 CORRECCIÓN: Guardar TODOS los datos del estudiante en localStorage
-          // con las claves que espera ruta_aprendizaje.html
+          // Guardar TODOS los datos del estudiante en localStorage
           localStorage.setItem('sti_student_id', db.student.id);
           localStorage.setItem('sti_student_name', db.student.name);
           localStorage.setItem('sti_student_lastname', db.student.lastname);
@@ -586,7 +664,6 @@
       preguntasRespondidasModulo = 0;
       moduloFinalizado = false;
       
-      // Seleccionar preguntas adaptativas para este módulo
       const historialModulo = db.historialPreguntas.filter(h => h.modulo === moduloActual.id);
       preguntasModuloActual = seleccionarPreguntasAdaptativas(
         moduloActual.id,
@@ -596,7 +673,6 @@
       
       state.textContent = `Evaluando Módulo ${currentModuloIndex + 1}/5 - ${moduloActual.id}`;
       
-      // Verificar que haya preguntas
       if (!preguntasModuloActual || preguntasModuloActual.length === 0) {
         row(`⚠️ No se encontraron preguntas para ${moduloActual.id}. Usando preguntas de contingencia.`, 'bot');
         preguntasModuloActual = generarPreguntasContingencia(moduloActual.clave, PREGUNTAS_POR_MODULO);
@@ -608,7 +684,6 @@
 
       row(`📚 **${moduloActual.id}** - Responderás ${preguntasModuloActual.length} preguntas.`, 'bot');
       
-      // Mostrar la primera pregunta después de un breve delay
       setTimeout(mostrarPregunta, 1500);
     }
 
@@ -616,10 +691,8 @@
     // MOSTRAR PREGUNTA
     // ============================================================
     function mostrarPregunta() {
-      // Verificar si el módulo actual ya se completó
       if (moduloFinalizado) return;
       
-      // Verificar si ya respondimos todas las preguntas del módulo actual
       if (preguntasRespondidasModulo >= preguntasModuloActual.length) {
         moduloFinalizado = true;
         currentModuloIndex++;
@@ -627,7 +700,6 @@
         return;
       }
 
-      // Verificar que haya una pregunta disponible
       if (!preguntasModuloActual || preguntasModuloActual.length === 0) {
         moduloFinalizado = true;
         currentModuloIndex++;
@@ -691,7 +763,7 @@
     }
 
     // ============================================================
-    // EVALUAR RESPUESTA
+    // EVALUAR RESPUESTA (con mensajes vistosos)
     // ============================================================
     function evaluarRespuesta(respuestaUsuario) {
       if (!isEsperandoRespuesta) return;
@@ -729,12 +801,16 @@
 
       // Registrar estadísticas
       db.themes[clave].total += 1;
+      
+      // Marcar opciones correctas/incorrectas en los botones
+      const botonesCorrectos = document.querySelectorAll('.option-eval-btn');
+      
       if (resultado.correcta) {
         db.score += 1;
         db.themes[clave].score += 1;
         okSound();
-        // Marcar correcta
-        const botonesCorrectos = document.querySelectorAll('.option-eval-btn');
+        
+        // Marcar correcta en verde
         botonesCorrectos.forEach((btn, idx) => {
           if (pregunta.tipo === 'multiple' && idx === pregunta.respuestaCorrecta) {
             btn.classList.add('correct');
@@ -746,10 +822,14 @@
             btn.classList.add('correct');
           }
         });
-        row(`✅ **¡Correcto!** ${pregunta.feedback}`, 'bot');
+        
+        // Mensaje vistoso de CORRECTO
+        resultRow('✅', '¡Respuesta Correcta!', true);
+        
       } else {
         badSound();
-        const botonesCorrectos = document.querySelectorAll('.option-eval-btn');
+        
+        // Marcar correcta en verde
         botonesCorrectos.forEach((btn, idx) => {
           if (pregunta.tipo === 'multiple' && idx === pregunta.respuestaCorrecta) {
             btn.classList.add('correct');
@@ -761,20 +841,30 @@
             btn.classList.add('correct');
           }
         });
+        
+        // Marcar la opción seleccionada como incorrecta en rojo
         if (respuestaUsuario !== undefined && respuestaUsuario !== null) {
           botonesCorrectos.forEach((btn) => {
-            if (btn.textContent.includes(textoRespuesta) || 
-                (pregunta.tipo === 'multiple' && btn.textContent.includes(pregunta.opciones[respuestaUsuario]))) {
-              btn.classList.add('incorrect');
+            const btnText = btn.textContent.trim();
+            if (pregunta.tipo === 'vf') {
+              const selectedText = respuestaUsuario ? 'Verdadero' : 'Falso';
+              if (btnText.includes(selectedText)) {
+                btn.classList.add('incorrect');
+              }
+            } else if (pregunta.tipo === 'completacion') {
+              if (btnText.includes(respuestaUsuario)) {
+                btn.classList.add('incorrect');
+              }
+            } else {
+              if (btnText.includes(pregunta.opciones[respuestaUsuario])) {
+                btn.classList.add('incorrect');
+              }
             }
           });
         }
-        row(`❌ **Incorrecto.** ${pregunta.feedback}`, 'bot');
-        if (pregunta.tipo === 'multiple' || pregunta.tipo === 'completacion') {
-          row(`💡 La respuesta correcta era: **${pregunta.respuestaCorrecta}**`, 'bot');
-        } else if (pregunta.tipo === 'vf') {
-          row(`💡 La respuesta correcta era: **${pregunta.respuestaCorrecta ? 'Verdadero' : 'Falso'}**`, 'bot');
-        }
+        
+        // Mensaje vistoso de INCORRECTO
+        resultRow('❌', 'Respuesta Incorrecta', false);
       }
 
       db.answers.push({
@@ -789,8 +879,7 @@
       preguntasRespondidasModulo++;
       setProgress();
       
-      // Esperar antes de mostrar la siguiente pregunta
-      setTimeout(mostrarPregunta, 3500);
+      setTimeout(mostrarPregunta, 2000);
     }
 
     // ============================================================
@@ -1097,7 +1186,6 @@
 
       // EVENTOS DE BOTONES
       document.getElementById('routeBtn').onclick = () => {
-        // 🔥 CORRECCIÓN: Asegurar que los datos estén en localStorage antes de navegar
         localStorage.setItem('sti_student_id', db.student.id);
         localStorage.setItem('sti_student_name', db.student.name);
         localStorage.setItem('sti_student_lastname', db.student.lastname);

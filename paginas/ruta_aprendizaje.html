@@ -159,6 +159,142 @@
       font-size: 0.7rem;
       margin-left: 6px;
     }
+
+    /* Estilos para las pestañas */
+    .tabs-container {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 10px 10px 0 0;
+      background: var(--glass);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      border-bottom: none;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--a1);
+      border-color: var(--a1);
+      box-shadow: 0 -2px 10px rgba(56, 189, 248, 0.1);
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Estilos para video */
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #000;
+    }
+
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    .video-container video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+
+    .video-placeholder {
+      width: 100%;
+      padding: 60px 20px;
+      text-align: center;
+      background: var(--glass);
+      border-radius: 14px;
+      border: 2px dashed var(--line);
+      color: var(--muted);
+    }
+
+    .video-placeholder h3 {
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    /* Estilos para mapa mental */
+    .mindmap-container {
+      width: 100%;
+      min-height: 400px;
+      background: var(--glass);
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+    }
+
+    .mindmap-container img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    .mindmap-placeholder {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px 20px;
+    }
+
+    .mindmap-placeholder h3 {
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .mindmap-placeholder .icon-big {
+      font-size: 4rem;
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    /* Estilos para desafíos dentro de pestaña */
+    .tab-challenge-content {
+      padding: 0;
+    }
   </style>
 </head>
 <body>
@@ -189,7 +325,7 @@
       </div>
       <div class="loading-overlay" id="loadingIA">
         <div class="spinner"></div>
-        <span>🧠 Gemini está estructurando tu próximo desafío adaptativo...</span>
+        <span>🧠 Cargando contenido del módulo...</span>
       </div>
       <div id="dynamicContentZone" style="display: none;"></div>
     </main>
@@ -239,6 +375,7 @@
   let desafiosVistos = {};
   let desafiosFallidos = {};
   let necesitaRepaso = {};
+  let activeTab = "desafios"; // 'video', 'mindmap', 'desafios'
 
   // ============================================================
   // FUNCIÓN PARA OBTENER EL VALOR DE UN TEMA DESDE LOCALSTORAGE
@@ -281,25 +418,31 @@
 
   function verificarEstructuraOpciones(challenge) {
     if (!challenge || !challenge.options || challenge.options.length !== 3) {
-      console.error("❌ Desafío inválido:", challenge);
-      return false;
+        console.error("❌ Desafío inválido:", challenge);
+        return false;
     }
     
     var correctas = 0;
     for (var i = 0; i < challenge.options.length; i++) {
-      if (i === challenge.correcta) {
-        correctas++;
-      }
+        if (challenge.options[i].c === true) {
+            correctas++;
+        }
     }
     
     if (correctas !== 1) {
-      console.error("❌ Debe haber exactamente 1 opción correcta. Encontradas:", correctas);
-      if (correctas === 0) {
-        challenge.correcta = 0;
-      } else if (correctas > 1) {
-        challenge.correcta = challenge.options.findIndex((_, idx) => idx === challenge.correcta);
-        if (challenge.correcta === -1) challenge.correcta = 0;
-      }
+        console.error("❌ Debe haber exactamente 1 opción correcta. Encontradas:", correctas);
+        var encontrada = false;
+        for (var i = 0; i < challenge.options.length; i++) {
+            if (!encontrada && challenge.options[i].c === true) {
+                encontrada = true;
+            } else {
+                challenge.options[i].c = false;
+            }
+        }
+        if (!encontrada) {
+            challenge.options[0].c = true;
+        }
+        challenge.correcta = challenge.options.findIndex(opt => opt.c === true);
     }
     
     return true;
@@ -486,7 +629,7 @@
       <div class="theme-step ${activeThemeGlobal === 'chatbot' ? 'active' : ''}" onclick="loadChatbotModule()">
         <div class="step-badge status-special">6</div>
         <div class="step-info">
-          <div class="step-title">💬 Chatbot con Gemini</div>
+          <div class="step-title">💬 Chatbot</div>
           <div class="step-status" style="color: var(--a1)">Pregunta sobre bases de datos</div>
         </div>
       </div>
@@ -494,7 +637,35 @@
   }
 
   // ============================================================
-  // CARGAR CONTENIDO DE TEMA
+  // FUNCIÓN PARA OBTENER LA URL DEL VIDEO POR TEMA
+  // ============================================================
+  function obtenerVideoPorTema(themeKey) {
+    const videos = {
+      "Introducción a BD": "../video/moduloI.mp4",
+      "Modelo Relacional": "../video/moduloII.mp4",
+      "Lenguaje SQL": "../video/moduloIII.mp4",
+      "Diseño de BD": "../video/moduloIV.mp4",
+      "SGBD y Herramientas": "../video/moduloV.mp4"
+    };
+    return videos[themeKey] || null;
+  }
+
+  // ============================================================
+  // FUNCIÓN PARA OBTENER LA URL DEL MAPA MENTAL POR TEMA
+  // ============================================================
+  function obtenerMapaMentalPorTema(themeKey) {
+    const mapas = {
+      "Introducción a BD": "../img/moduloI.png",
+      "Modelo Relacional": "../img/moduloII.png",
+      "Lenguaje SQL": "../img/moduloIII.png",
+      "Diseño de BD": "../img/moduloIV.png",
+      "SGBD y Herramientas": "../img/moduloV.png"
+    };
+    return mapas[themeKey] || null;
+  }
+
+  // ============================================================
+  // CARGAR CONTENIDO DE TEMA CON PESTAÑAS
   // ============================================================
   function loadThemeContent(themeKey) {
     if (isWaitingForResponse) return;
@@ -519,34 +690,30 @@
     
     if (countdownInterval) clearInterval(countdownInterval);
     activeThemeGlobal = themeKey;
+    activeTab = "video";
     
     // Inicializar estado de desafíos vistos para este tema
     if (!desafiosVistos[themeKey]) {
       desafiosVistos[themeKey] = [];
-    }
-    
-      if (!desafiosVistos[themeKey]) {
-        desafiosVistos[themeKey] = [];
-        console.log(`🆕 Inicializando desafiosVistos para "${themeKey}"`);
+      console.log(`🆕 Inicializando desafiosVistos para "${themeKey}"`);
     } else {
-        console.log(`📋 desafiosVistos para "${themeKey}" ya existe:`, desafiosVistos[themeKey]);
+      console.log(`📋 desafiosVistos para "${themeKey}" ya existe:`, desafiosVistos[themeKey]);
     }
     
-    // 🔥 NUEVO: Cargar desde localStorage específico del tema
+    // Cargar desde localStorage específico del tema
     try {
-        const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
-        const saved = localStorage.getItem(temaKeyStorage);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed.length > desafiosVistos[themeKey].length) {
-                desafiosVistos[themeKey] = parsed;
-                console.log(`📂 Cargados ${parsed.length} desafíos vistos para "${themeKey}" desde localStorage`);
-            }
+      const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+      const saved = localStorage.getItem(temaKeyStorage);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > desafiosVistos[themeKey].length) {
+          desafiosVistos[themeKey] = parsed;
+          console.log(`📂 Cargados ${parsed.length} desafíos vistos para "${themeKey}" desde localStorage`);
         }
+      }
     } catch (e) {
-        console.error("❌ Error al cargar desafíos vistos desde localStorage:", e);
+      console.error("❌ Error al cargar desafíos vistos desde localStorage:", e);
     }
-
 
     if (!desafiosFallidos[themeKey]) {
       desafiosFallidos[themeKey] = [];
@@ -557,44 +724,172 @@
     
     currentCorrectCount = 0;
     renderSequencedRoadMap();
-    generarDesafioLocal(themeKey);
+    
+    mostrarContenidoConTabs(themeKey);
+  }
+
+  // ============================================================
+  // MOSTRAR CONTENIDO CON PESTAÑAS
+  // ============================================================
+  function mostrarContenidoConTabs(themeKey) {
+    document.getElementById('defaultMessage').style.display = "none";
+    document.getElementById('loadingIA').style.display = "none";
+    
+    const zone = document.getElementById('dynamicContentZone');
+    zone.style.display = "block";
+    
+    const videoUrl = obtenerVideoPorTema(themeKey);
+    const mindmapUrl = obtenerMapaMentalPorTema(themeKey);
+    const moduloId = MODULO_MAP[themeKey] || themeKey;
+    
+    let html = `
+      <h3 class="card-title">${moduloId}</h3>
+      
+      <div class="tabs-container">
+        <button class="tab-btn ${activeTab === 'video' ? 'active' : ''}" onclick="cambiarTab('video', '${themeKey}')">
+          🎬 Video
+        </button>
+        <button class="tab-btn ${activeTab === 'mindmap' ? 'active' : ''}" onclick="cambiarTab('mindmap', '${themeKey}')">
+          🧠 Mapa Mental
+        </button>
+        <button class="tab-btn ${activeTab === 'desafios' ? 'active' : ''}" onclick="cambiarTab('desafios', '${themeKey}')">
+          ⚡ Desafíos
+        </button>
+      </div>
+      
+      <div id="tabContentContainer">
+        <div id="tabVideo" class="tab-content ${activeTab === 'video' ? 'active' : ''}">
+    `;
+    
+    if (videoUrl) {
+      // Detectar si es un video local (termina en .mp4, .webm, etc.)
+      if (videoUrl.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i)) {
+        html += `
+          <div class="video-container">
+            <video controls preload="metadata">
+              <source src="${videoUrl}" type="video/mp4">
+              Tu navegador no soporta la reproducción de videos.
+            </video>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="video-container">
+            <iframe 
+              src="${videoUrl}" 
+              title="Video educativo sobre ${themeKey}"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen>
+            </iframe>
+          </div>
+        `;
+      }
+    } else {
+      html += `
+        <div class="video-placeholder">
+          <h3>🎬 Video Educativo</h3>
+          <p style="color: var(--muted);">
+            📌 <strong>Instrucción:</strong> Agrega aquí la URL del video para el tema "${themeKey}"<br>
+            <span style="font-size: 0.85rem;">Busca la función <code>obtenerVideoPorTema()</code> en el código para agregar el enlace.</span>
+          </p>
+          <p style="color: var(--muted); margin-top: 15px; font-size: 0.9rem;">
+            💡 Puedes usar videos de YouTube, Vimeo o tu propio servidor.
+          </p>
+        </div>
+      `;
+    }
+    
+    html += `
+        </div>
+        
+        <div id="tabMindmap" class="tab-content ${activeTab === 'mindmap' ? 'active' : ''}">
+    `;
+    
+    if (mindmapUrl) {
+      html += `
+        <div class="mindmap-container">
+          <img src="${mindmapUrl}" alt="Mapa mental de ${themeKey}" />
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="mindmap-placeholder">
+          <span class="icon-big">🧠</span>
+          <h3>Mapa Mental</h3>
+          <p style="color: var(--muted);">
+            📌 <strong>Instrucción:</strong> Agrega aquí la imagen del mapa mental para el tema "${themeKey}"<br>
+            <span style="font-size: 0.85rem;">Busca la función <code>obtenerMapaMentalPorTema()</code> en el código para agregar el enlace.</span>
+          </p>
+          <p style="color: var(--muted); margin-top: 15px; font-size: 0.9rem;">
+            💡 Puedes usar imágenes PNG, JPG o cualquier formato de imagen.
+          </p>
+        </div>
+      `;
+    }
+    
+    html += `
+        </div>
+        
+        <div id="tabDesafios" class="tab-content ${activeTab === 'desafios' ? 'active' : ''}">
+          <div id="desafiosContainer" class="tab-challenge-content">
+          </div>
+        </div>
+      </div>
+    `;
+    
+    zone.innerHTML = html;
+    
+    if (activeTab === 'desafios') {
+      generarDesafioLocal(themeKey);
+    } else {
+      const container = document.getElementById('desafiosContainer');
+      if (container) {
+        container.innerHTML = `
+          <div style="text-align:center; padding: 40px 20px; color: var(--muted);">
+            <p style="font-size: 1.1rem;">👈 Haz clic en la pestaña <strong>"Desafíos"</strong> para comenzar tu evaluación.</p>
+          </div>
+        `;
+      }
+    }
   }
 
   // ============================================================
   // GENERAR DESAFÍO LOCAL - CON PREGUNTAS DE LOS BANCOS
   // ============================================================
   function generarDesafioLocal(themeKey) {
-    document.getElementById('defaultMessage').style.display = "none";
-    document.getElementById('dynamicContentZone').style.display = "none";
-    document.getElementById('loadingIA').style.display = "block";
+    const container = document.getElementById('desafiosContainer');
+    if (!container) return;
+    
+    container.innerHTML = `
+      <div style="text-align:center; padding: 40px; color: var(--a1);">
+        <div class="spinner" style="margin: 0 auto 15px auto;"></div>
+        <span>🧠 Gemini está estructurando tu próximo desafío adaptativo...</span>
+      </div>
+    `;
+    
     isWaitingForResponse = true;
 
-    // Simular delay de Gemini
     setTimeout(() => {
-      // Obtener desafíos para el tema
       let disponibles = obtenerDesafiosPorTema(themeKey);
 
-       console.log(`🎲 Generando desafío para "${themeKey}"`);
-        console.log(`📋 desafiosVistos actual:`, desafiosVistos[themeKey]);
-        console.log(`📚 Total desafíos disponibles: ${disponibles.length}`);
+      console.log(`🎲 Generando desafío para "${themeKey}"`);
+      console.log(`📋 desafiosVistos actual:`, desafiosVistos[themeKey]);
+      console.log(`📚 Total desafíos disponibles: ${disponibles.length}`);
       
-      // Filtrar desafíos no vistos
       let noVistos = disponibles.filter(d => {
-            const visto = desafiosVistos[themeKey].includes(d.id);
-            if (visto) {
-                console.log(`⏭️ Desafío ${d.id} ya visto`);
-            }
-            return !visto;
-        });
-        
-        console.log(`✅ Desafíos no vistos: ${noVistos.length}`);
+        const visto = desafiosVistos[themeKey].includes(d.id);
+        if (visto) {
+          console.log(`⏭️ Desafío ${d.id} ya visto`);
+        }
+        return !visto;
+      });
       
-      // Si no hay más desafíos disponibles
+      console.log(`✅ Desafíos no vistos: ${noVistos.length}`);
+      
       if (noVistos.length === 0) {
         isWaitingForResponse = false;
-        document.getElementById('loadingIA').style.display = "none";
         
-        // Verificar si el estudiante alcanzó el puntaje requerido
         if (currentCorrectCount >= requiredCorrectForUnlock) {
           mostrarCompletadoTema(themeKey);
           return;
@@ -604,45 +899,41 @@
           desafiosFallidos[themeKey] = [];
 
           try {
-                    const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
-                    localStorage.removeItem(temaKeyStorage);
-                    console.log(`🗑️ Eliminado localStorage para "${themeKey}"`);
-                } catch (e) {
-                    console.error("❌ Error al limpiar localStorage:", e);
-                }
+            const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+            localStorage.removeItem(temaKeyStorage);
+            console.log(`🗑️ Eliminado localStorage para "${themeKey}"`);
+          } catch (e) {
+            console.error("❌ Error al limpiar localStorage:", e);
+          }
 
           mostrarMensajeRepaso(themeKey);
           return;
         }
       }
       
-      // Seleccionar un desafío aleatorio de los no vistos
       const randomIndex = Math.floor(Math.random() * noVistos.length);
       const desafioSeleccionado = noVistos[randomIndex];
       
       console.log(`🎯 Desafío seleccionado: ${desafioSeleccionado.id} - ${desafioSeleccionado.enunciado.substring(0, 40)}...`);
 
-      // Marcar como visto
       desafiosVistos[themeKey].push(desafioSeleccionado.id);
       console.log(`✅ Marcado como visto: ${desafioSeleccionado.id}`);
-        console.log(`📋 desafiosVistos actualizado:`, desafiosVistos[themeKey]);
+      console.log(`📋 desafiosVistos actualizado:`, desafiosVistos[themeKey]);
 
-        try {
-            const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
-            localStorage.setItem(temaKeyStorage, JSON.stringify(desafiosVistos[themeKey]));
-            console.log(`💾 Guardado en localStorage: ${temaKeyStorage} =`, desafiosVistos[themeKey]);
-        } catch (e) {
-            console.error("❌ Error al guardar en localStorage:", e);
-        }
-        
-        // 🔥 NUEVO: Guardar copia de seguridad global
-        try {
-            localStorage.setItem('sti_desafios_vistos', JSON.stringify(desafiosVistos));
-        } catch (e) {
-            console.error("❌ Error al guardar copia global:", e);
-        }
+      try {
+        const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+        localStorage.setItem(temaKeyStorage, JSON.stringify(desafiosVistos[themeKey]));
+        console.log(`💾 Guardado en localStorage: ${temaKeyStorage} =`, desafiosVistos[themeKey]);
+      } catch (e) {
+        console.error("❌ Error al guardar en localStorage:", e);
+      }
       
-      // Construir el objeto de desafío
+      try {
+        localStorage.setItem('sti_desafios_vistos', JSON.stringify(desafiosVistos));
+      } catch (e) {
+        console.error("❌ Error al guardar copia global:", e);
+      }
+      
       const challenge = {
         q: desafioSeleccionado.enunciado,
         options: desafioSeleccionado.opciones.map((texto, idx) => ({
@@ -654,11 +945,10 @@
         id: desafioSeleccionado.id
       };
       
-      // Mezclar opciones
       challenge.options = mezclarOpciones(challenge.options);
       
       isWaitingForResponse = false;
-      renderChallengeUI(challenge, true);
+      renderChallengeUI(challenge, true, container);
     }, 1500 + Math.random() * 1000);
   }
 
@@ -666,7 +956,6 @@
   // OBTENER DESAFÍOS POR TEMA DESDE LOS BANCOS
   // ============================================================
   function obtenerDesafiosPorTema(themeKey) {
-    // Mapeo de temas a sus bancos de desafíos
     const mapTemaABanco = {
       "Introducción a BD": bancoDesafios,
       "Modelo Relacional": desafiosModulo2,
@@ -674,90 +963,13 @@
       "Diseño de BD": desafiosModulo4,
       "SGBD y Herramientas": desafiosModulo5
     };
-    
     return mapTemaABanco[themeKey] || [];
-  }
-
-  // ============================================================
-  // MOSTRAR MENSAJE DE REPASO
-  // ============================================================
-  function mostrarMensajeRepaso(themeKey) {
-    const zone = document.getElementById('dynamicContentZone');
-    zone.style.display = "block";
-    document.getElementById('loadingIA').style.display = "none";
-
-    try {
-        const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
-        localStorage.removeItem(temaKeyStorage);
-        console.log(`🗑️ Eliminado localStorage para repaso de "${themeKey}"`);
-    } catch (e) {
-        console.error("❌ Error al limpiar localStorage:", e);
-    }
-    
-    zone.innerHTML = `
-      <div style="text-align:center; padding: 40px 20px;">
-        <h2 style="color: var(--a4);">📚 ¡Necesitas Repasar!</h2>
-        <p style="color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 20px auto;">
-          Has completado todos los desafíos disponibles para <strong>${themeKey}</strong>, 
-          pero aún no alcanzaste el puntaje mínimo de ${requiredCorrectForUnlock} aciertos.
-        </p>
-        <p style="color: var(--muted);">
-          🔄 Se reiniciarán los desafíos para que puedas repasar y mejorar tu desempeño.
-        </p>
-        <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-          <button onclick="generarDesafioLocal('${themeKey}')" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a4), #d97706); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
-            🔄 Comenzar Repaso
-          </button>
-          <button onclick="location.reload()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
-            🔄 Actualizar
-          </button>
-        </div>
-      </div>
-    `;
-  }
-
-  // ============================================================
-  // MOSTRAR COMPLETADO DEL TEMA
-  // ============================================================
-  function mostrarCompletadoTema(themeKey) {
-    const zone = document.getElementById('dynamicContentZone');
-    zone.style.display = "block";
-    document.getElementById('loadingIA').style.display = "none";
-
-      try {
-        const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
-        localStorage.removeItem(temaKeyStorage);
-        console.log(`🗑️ Eliminado localStorage para "${themeKey}" (tema completado)`);
-    } catch (e) {
-        console.error("❌ Error al limpiar localStorage:", e);
-    }
-    
-    zone.innerHTML = `
-      <div style="text-align:center; padding: 40px 20px;">
-        <h2 style="color: var(--a3);">🎉 ¡Dominio Completado!</h2>
-        <p style="color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 20px auto;">
-          Has alcanzado los ${requiredCorrectForUnlock} aciertos en <strong>${themeKey}</strong>.
-          ¡Excelente trabajo!
-        </p>
-        <p style="color: var(--muted);">
-          ✅ El siguiente eje temático está ahora disponible en tu panel adaptativo.
-        </p>
-        <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-          <button onclick="cargarSiguienteTemaNoCompletado()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a3), #16a34a); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
-            ➡️ Siguiente tema
-          </button>
-          <button onclick="location.reload()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
-            🔄 Actualizar progreso
-          </button>
-        </div>
-      </div>
-    `;
   }
 
   // ============================================================
   // RENDERIZAR UI DEL DESAFÍO
   // ============================================================
-  function renderChallengeUI(challenge, esContingencia) {
+  function renderChallengeUI(challenge, esContingencia, container) {
     if (!verificarEstructuraOpciones(challenge)) {
       console.error("❌ Desafío con estructura inválida, usando contingencia");
       challenge = {
@@ -774,10 +986,6 @@
     }
     
     currentChallengeActive = challenge;
-    document.getElementById('loadingIA').style.display = "none";
-    
-    const zone = document.getElementById('dynamicContentZone');
-    zone.style.display = "block";
     
     const badgeContingencia = esContingencia ? '<span class="contingency-badge">⚡ Generado por Gemini</span>' : '';
     
@@ -787,14 +995,13 @@
 
     console.log(`📊 Estado UI: Total=${totalDisponibles}, Vistos=${vistos}, No vistos=${noVistos}`);
     
-    zone.innerHTML = `
+    container.innerHTML = `
       <span class="badge-priority" style="background:rgba(56, 189, 248, 0.12); color:var(--a1); border:1px solid var(--a1);">
         🧠 DESAFÍO ADAPTATIVO ${badgeContingencia}
         <span style="font-size:0.7rem; margin-left:10px; color:var(--muted);">
           Desafío ${vistos + 1} de ${totalDisponibles}
         </span>
       </span>
-      <h3 class="card-title">Eje Evaluador: ${activeThemeGlobal}</h3>
       
       <div class="challenge-box" id="challengeContainer">
         <h4>
@@ -952,6 +1159,126 @@
   }
 
   // ============================================================
+  // MOSTRAR MENSAJE DE REPASO
+  // ============================================================
+  function mostrarMensajeRepaso(themeKey) {
+    const container = document.getElementById('desafiosContainer');
+    if (!container) {
+      const zone = document.getElementById('dynamicContentZone');
+      zone.innerHTML = `
+        <div style="text-align:center; padding: 40px 20px;">
+          <h2 style="color: var(--a4);">📚 ¡Necesitas Repasar!</h2>
+          <p style="color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 20px auto;">
+            Has completado todos los desafíos disponibles para <strong>${themeKey}</strong>, 
+            pero aún no alcanzaste el puntaje mínimo de ${requiredCorrectForUnlock} aciertos.
+          </p>
+          <p style="color: var(--muted);">
+            🔄 Se reiniciarán los desafíos para que puedas repasar y mejorar tu desempeño.
+          </p>
+          <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <button onclick="loadThemeContent('${themeKey}')" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a4), #d97706); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+              🔄 Comenzar Repaso
+            </button>
+            <button onclick="location.reload()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+              🔄 Actualizar
+            </button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    try {
+      const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+      localStorage.removeItem(temaKeyStorage);
+      console.log(`🗑️ Eliminado localStorage para repaso de "${themeKey}"`);
+    } catch (e) {
+      console.error("❌ Error al limpiar localStorage:", e);
+    }
+    
+    container.innerHTML = `
+      <div style="text-align:center; padding: 40px 20px;">
+        <h2 style="color: var(--a4);">📚 ¡Necesitas Repasar!</h2>
+        <p style="color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 20px auto;">
+          Has completado todos los desafíos disponibles para <strong>${themeKey}</strong>, 
+          pero aún no alcanzaste el puntaje mínimo de ${requiredCorrectForUnlock} aciertos.
+        </p>
+        <p style="color: var(--muted);">
+          🔄 Se reiniciarán los desafíos para que puedas repasar y mejorar tu desempeño.
+        </p>
+        <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+          <button onclick="loadThemeContent('${themeKey}')" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a4), #d97706); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+            🔄 Comenzar Repaso
+          </button>
+          <button onclick="location.reload()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+            🔄 Actualizar
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // MOSTRAR COMPLETADO DEL TEMA
+  // ============================================================
+  function mostrarCompletadoTema(themeKey) {
+    const container = document.getElementById('desafiosContainer');
+    if (!container) {
+      const zone = document.getElementById('dynamicContentZone');
+      zone.innerHTML = `
+        <div style="text-align:center; padding: 40px 20px;">
+          <h2 style="color: var(--a3);">🎉 ¡Dominio Completado!</h2>
+          <p style="color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 20px auto;">
+            Has alcanzado los ${requiredCorrectForUnlock} aciertos en <strong>${themeKey}</strong>.
+            ¡Excelente trabajo!
+          </p>
+          <p style="color: var(--muted);">
+            ✅ El siguiente eje temático está ahora disponible en tu panel adaptativo.
+          </p>
+          <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <button onclick="cargarSiguienteTemaNoCompletado()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a3), #16a34a); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+              ➡️ Siguiente tema
+            </button>
+            <button onclick="location.reload()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+              🔄 Actualizar progreso
+            </button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    try {
+      const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+      localStorage.removeItem(temaKeyStorage);
+      console.log(`🗑️ Eliminado localStorage para "${themeKey}" (tema completado)`);
+    } catch (e) {
+      console.error("❌ Error al limpiar localStorage:", e);
+    }
+    
+    container.innerHTML = `
+      <div style="text-align:center; padding: 40px 20px;">
+        <h2 style="color: var(--a3);">🎉 ¡Dominio Completado!</h2>
+        <p style="color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 20px auto;">
+          Has alcanzado los ${requiredCorrectForUnlock} aciertos en <strong>${themeKey}</strong>.
+          ¡Excelente trabajo!
+        </p>
+        <p style="color: var(--muted);">
+          ✅ El siguiente eje temático está ahora disponible en tu panel adaptativo.
+        </p>
+        <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+          <button onclick="cargarSiguienteTemaNoCompletado()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a3), #16a34a); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+            ➡️ Siguiente tema
+          </button>
+          <button onclick="location.reload()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+            🔄 Actualizar progreso
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============================================================
   // CARGAR SIGUIENTE TEMA NO COMPLETADO
   // ============================================================
   function cargarSiguienteTemaNoCompletado() {
@@ -978,153 +1305,130 @@
   }
 
   // ============================================================
-  // MÓDULO CHATBOT CON GEMINI (CONEXIÓN REAL)
+  // MÓDULO CHATBOT
   // ============================================================
   function loadChatbotModule() {
-    if (countdownInterval) clearInterval(countdownInterval);
-    activeThemeGlobal = "chatbot";
-    renderSequencedRoadMap();
-
-    document.getElementById('defaultMessage').style.display = "none";
-    document.getElementById('loadingIA').style.display = "none";
-    document.getElementById('dynamicContentZone').style.display = "block";
-    
     document.getElementById('dynamicContentZone').innerHTML = `
-      <h3 class="card-title">💬 Chatbot con Gemini</h3>
-      <p style="color:var(--muted); margin-bottom:20px;">Escribe tu pregunta sobre bases de datos y Gemini te responderá.</p>
+      <h3 class="card-title">💬 Tu agente de aprendizaje</h3>
+      <p style="color:var(--muted); margin-bottom:20px;">Escribe tu pregunta sobre bases de datos y tu agente de aprendizaje responderá.</p>
       
       <div class="chat-container">
         <div class="chat-messages" id="chatConversation">
           <div class="system">💬 Bienvenido al Chatbot. Pregunta sobre bases de datos, SQL, diseño, optimización o SGBD.</div>
-          ${historialChat.length > 0 ? historialChat.map(msg => 
-            `<div class="${msg.role === 'user' ? 'user' : 'bot'}">${msg.role === 'user' ? '👤' : '🤖'} ${msg.content}</div>`
-          ).join('') : ''}
-        </div>
-        
-        <div class="chat-input-row">
-          <input type="text" id="chatInput" placeholder="Escribe tu pregunta..." autocomplete="off">
-          <button id="chatSendBtn" onclick="enviarPreguntaGemini()">Enviar</button>
+          <iframe
+              src="https://udify.app/chatbot/MsHWqapLDCRyCEbx"
+              style="width: 100%; height: 80%; min-height: 400px"
+              frameborder="0"
+              allow="microphone">
+          </iframe>
         </div>
       </div>
     `;
-
-    document.getElementById('chatInput').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        enviarPreguntaGemini();
-      }
-    });
-    
-    setTimeout(() => {
-      document.getElementById('chatInput').focus();
-    }, 100);
   }
 
   // ============================================================
-  // FUNCIÓN PARA ENVIAR PREGUNTA A GEMINI (CONEXIÓN REAL)
+  // DETENER VIDEO AL CAMBIAR DE PESTAÑA
   // ============================================================
-  async function enviarPreguntaGemini() {
-    const input = document.getElementById('chatInput');
-    const conversation = document.getElementById('chatConversation');
-    const sendBtn = document.getElementById('chatSendBtn');
-    const pregunta = input.value.trim();
+  function detenerVideo() {
+    const videoContainer = document.getElementById('tabVideo');
+    if (!videoContainer) return;
     
-    if (!pregunta) return;
-    
-    sendBtn.disabled = true;
-    sendBtn.textContent = '⏳ Enviando...';
-    input.disabled = true;
-    
-    const userMsg = document.createElement('div');
-    userMsg.className = 'user';
-    userMsg.textContent = `👤 ${pregunta}`;
-    conversation.appendChild(userMsg);
-    input.value = '';
-    conversation.scrollTop = conversation.scrollHeight;
-    
-    historialChat.push({ role: 'user', content: pregunta });
-    
-    const loadingId = 'loading_' + Date.now();
-    const loadingMsg = document.createElement('div');
-    loadingMsg.className = 'loading';
-    loadingMsg.id = loadingId;
-    loadingMsg.textContent = '⏳ Gemini está pensando...';
-    conversation.appendChild(loadingMsg);
-    conversation.scrollTop = conversation.scrollHeight;
-    
-    try {
-      const contextoChat = historialChat.slice(-6).map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
-      
-      const payload = {
-        action: "CHAT_WITH_GEMINI",
-        message: pregunta,
-        context: "Eres un asistente experto en Bases de Datos. Responde preguntas sobre: Introducción a BD, Modelo Relacional, SQL, Diseño de BD, Optimización, SGBD y Herramientas. Sé claro, conciso y educativo.",
-        history: contextoChat,
-        student: {
-          name: localStorage.getItem('sti_student_name') || '',
-          level: localStorage.getItem('sti_student_level') || '',
-          completedThemes: THEMES_LIST.filter(t => progresoTemas[t] >= 100)
-        }
-      };
-      
-      console.log("📤 Enviando pregunta a Gemini:", { pregunta, contexto: contextoChat.length });
-      
-      const response = await fetch(SCRIPT_BASE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload)
-      });
-      
-      const loadingEl = document.getElementById(loadingId);
-      if (loadingEl) loadingEl.remove();
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log("📥 Respuesta de Gemini:", data);
-      
-      if (data.status === "success" && data.response) {
-        const respuestaFormateada = data.response.replace(/\n/g, '<br>');
-        const botMsg = document.createElement('div');
-        botMsg.className = 'bot';
-        botMsg.innerHTML = `🤖 ${respuestaFormateada}`;
-        conversation.appendChild(botMsg);
-        historialChat.push({ role: 'bot', content: data.response });
-      } else {
-        const errorMsg = document.createElement('div');
-        errorMsg.className = 'error';
-        errorMsg.textContent = `❌ Error: ${data.message || 'No se pudo obtener respuesta'}`;
-        conversation.appendChild(errorMsg);
-      }
-    } catch (error) {
-      const loadingEl = document.getElementById(loadingId);
-      if (loadingEl) loadingEl.remove();
-      
-      console.error("❌ Error en chat:", error);
-      
-      const errorMsg = document.createElement('div');
-      errorMsg.className = 'error';
-      errorMsg.textContent = `❌ Error de conexión: ${error.message}. Por favor, intenta de nuevo.`;
-      conversation.appendChild(errorMsg);
-      
-      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-        const helpMsg = document.createElement('div');
-        helpMsg.className = 'system';
-        helpMsg.textContent = '💡 Sugerencia: Verifica tu conexión a internet. El chatbot requiere conexión para funcionar.';
-        conversation.appendChild(helpMsg);
-      }
+    // Buscar video HTML5 nativo
+    const videoElement = videoContainer.querySelector('video');
+    if (videoElement && !videoElement.paused) {
+      videoElement.pause();
+      console.log("⏸️ Video HTML5 pausado al cambiar de pestaña");
+      return;
     }
     
-    sendBtn.disabled = false;
-    sendBtn.textContent = 'Enviar';
-    input.disabled = false;
-    conversation.scrollTop = conversation.scrollHeight;
-    input.focus();
+    // Buscar iframe (YouTube/Vimeo)
+    const iframe = videoContainer.querySelector('iframe');
+    if (iframe && iframe.src) {
+      const src = iframe.src;
+      
+      if (src.includes('youtube.com/embed') || src.includes('youtu.be')) {
+        try {
+          iframe.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }),
+            '*'
+          );
+          console.log("⏸️ Intento de pausa con postMessage (YouTube)");
+        } catch (e) {
+          console.log("⚠️ Error con postMessage:", e.message);
+        }
+        
+        // Recargar el iframe para detener el video completamente
+        setTimeout(() => {
+          const currentSrc = iframe.src;
+          iframe.src = '';
+          setTimeout(() => {
+            iframe.src = currentSrc;
+            console.log("🔄 Iframe recargado - video detenido");
+          }, 100);
+        }, 200);
+        
+        console.log("⏸️ Video de YouTube detenido (recarga del iframe)");
+      } else if (src.includes('player.vimeo.com')) {
+        try {
+          iframe.contentWindow.postMessage(
+            JSON.stringify({ method: 'pause' }),
+            '*'
+          );
+          console.log("⏸️ Video de Vimeo pausado");
+        } catch (e) {
+          console.log("⚠️ Error al pausar Vimeo:", e.message);
+        }
+      }
+    }
   }
+
+  // ============================================================
+  // CAMBIAR PESTAÑA
+  // ============================================================
+  function cambiarTab(tab, themeKey) {
+    if (isWaitingForResponse) return;
+
+    // Limpiar el temporizador al cambiar de pestaña
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      console.log("⏹️ Temporizador detenido al cambiar de pestaña");
+    }
+    
+    detenerVideo();
+    activeTab = tab;
+    
+    // Actualizar clases de botones
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    const botones = document.querySelectorAll('.tab-btn');
+    const indexMap = { video: 0, mindmap: 1, desafios: 2 };
+    if (botones[indexMap[tab]]) {
+      botones[indexMap[tab]].classList.add('active');
+    }
+    
+    // Mostrar/ocultar contenidos
+    const tabVideo = document.getElementById('tabVideo');
+    const tabMindmap = document.getElementById('tabMindmap');
+    const tabDesafios = document.getElementById('tabDesafios');
+    
+    if (tabVideo) tabVideo.classList.toggle('active', tab === 'video');
+    if (tabMindmap) tabMindmap.classList.toggle('active', tab === 'mindmap');
+    if (tabDesafios) tabDesafios.classList.toggle('active', tab === 'desafios');
+    
+    // Si se selecciona desafíos, cargar el contenido
+    if (tab === 'desafios') {
+      const container = document.getElementById('desafiosContainer');
+      if (container) {
+        document.getElementById('defaultMessage').style.display = "none";
+        document.getElementById('loadingIA').style.display = "none";
+        generarDesafioLocal(themeKey);
+      }
+    }
+  }
+
+  // ============================================================
+  // BANCOS DE DESAFÍOS
+  // ============================================================
 </script>
 
 <script>
@@ -1132,7 +1436,6 @@
   // BANCO DE DESAFÍOS - MÓDULO 1: INTRODUCCIÓN A LAS BASES DE DATOS
   // ============================================================
   const bancoDesafios = [
-    // --- NIVEL BAJO (1-20) ---
     {
       id: 1,
       dificultad: "bajo",
@@ -1293,7 +1596,6 @@
       opciones: ["En el disco duro físico", "En el catálogo o diccionario de datos", "En el código fuente de la aplicación"],
       correcta: 1
     },
-    // --- NIVEL MEDIO (21-40) ---
     {
       id: 21,
       dificultad: "medio",
@@ -1454,7 +1756,6 @@
       opciones: ["La velocidad de impresión", "La redundancia e inconsistencia", "El uso de pantallas táctiles"],
       correcta: 1
     },
-    // --- NIVEL ALTO (41-60) ---
     {
       id: 41,
       dificultad: "alto",
@@ -1621,7 +1922,6 @@
   // BANCO DE DESAFÍOS - MÓDULO 2: DISEÑO DE BASES DE DATOS
   // ============================================================
   const desafiosModulo2 = [
-    // --- NIVEL BAJO ---
     {
       id: 101,
       dificultad: "bajo",
@@ -1782,7 +2082,6 @@
       opciones: ["Una jerarquía", "Una asociación o pertenencia", "Un proceso de borrado"],
       correcta: 1
     },
-    // --- NIVEL MEDIO (21-40) ---
     {
       id: 121,
       dificultad: "medio",
@@ -1943,7 +2242,6 @@
       opciones: ["Aquel cuyo valor se obtiene de otros atributos", "Un atributo que hereda de una superclase", "La clave foránea de una entidad débil"],
       correcta: 0
     },
-    // --- NIVEL ALTO (41-60) ---
     {
       id: 141,
       dificultad: "alto",
@@ -2110,7 +2408,6 @@
   // BANCO DE DESAFÍOS - MÓDULO 3: ADMINISTRACIÓN DE BASES DE DATOS
   // ============================================================
   const desafiosModulo3 = [
-    // --- NIVEL BAJO ---
     {
       id: 201,
       dificultad: "bajo",
@@ -2271,7 +2568,6 @@
       opciones: ["Solo a nivel de base de datos completa", "Solo a nivel de hardware", "A nivel de cuenta y a nivel de relación (tablas/vistas)"],
       correcta: 2
     },
-    // --- NIVEL MEDIO ---
     {
       id: 221,
       dificultad: "medio",
@@ -2432,7 +2728,6 @@
       opciones: ["Solo los de Director", "Solo los de Cajero", "Los suyos propios más todos los heredados de Cajero"],
       correcta: 2
     },
-    // --- NIVEL ALTO ---
     {
       id: 241,
       dificultad: "alto",
@@ -2599,7 +2894,6 @@
   // BANCO DE DESAFÍOS - MÓDULO 4: OPTIMIZACIÓN DE BASES DE DATOS
   // ============================================================
   const desafiosModulo4 = [
-    // --- NIVEL BAJO ---
     {
       id: 301,
       dificultad: "bajo",
@@ -2760,7 +3054,6 @@
       opciones: ["GROUP BY", "JOIN (concatenación)", "ORDER BY"],
       correcta: 1
     },
-    // --- NIVEL MEDIO ---
     {
       id: 321,
       dificultad: "medio",
@@ -2921,7 +3214,6 @@
       opciones: ["WITH GRANT OPTION", "WITH CHECK OPTION", "CASCADE"],
       correcta: 1
     },
-    // --- NIVEL ALTO ---
     {
       id: 341,
       dificultad: "alto",
@@ -3088,7 +3380,6 @@
   // BANCO DE DESAFÍOS - MÓDULO 5: HERRAMIENTAS Y TECNOLOGÍAS
   // ============================================================
   const desafiosModulo5 = [
-    // --- NIVEL BAJO ---
     {
       id: 401,
       dificultad: "bajo",
@@ -3249,7 +3540,6 @@
       opciones: ["Visual Paradigm", "MongoDB", "MySQL"],
       correcta: 0
     },
-    // --- NIVEL MEDIO ---
     {
       id: 421,
       dificultad: "medio",
@@ -3410,7 +3700,6 @@
       opciones: ["Java", "C/C++", "Python"],
       correcta: 1
     },
-    // --- NIVEL ALTO ---
     {
       id: 441,
       dificultad: "alto",

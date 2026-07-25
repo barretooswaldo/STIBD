@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ruta de Aprendizaje Adaptativa Dinámica - STI Gemini</title>
+  <title>Ruta de Aprendizaje Adaptativa Dinámica - STI</title>
   <style>
     :root {
-      --bg1: #040817;
-      --bg2: #0b1530;
+      --bg1: #1a450e;
+      --bg2: #0b280a;
       --glass: rgba(255, 255, 255, .06);
       --line: rgba(255, 255, 255, .1);
       --text: #eaf2ff;
@@ -22,7 +22,7 @@
     * { box-sizing: border-box; font-family: 'Inter', Arial, sans-serif; }
     body {
       margin: 0; min-height: 100vh; color: var(--text);
-      background: radial-gradient(circle at 50% 50%, #0a1128 0%, #02040a 100%);
+      background: radial-gradient(circle at 50% 50%, #abe8a2 0%, #0b280a 100%);
       padding: 30px 20px; display: flex; flex-direction: column; align-items: center;
     }
     .container { width: 100%; max-width: 1050px; }
@@ -72,25 +72,112 @@
     .spinner { border: 4px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--a1); animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .theme-progress { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
-    .chatbot-iframe { width: 100%; min-height: 600px; border: 1px solid var(--line); border-radius:12px; background: rgba(255,255,255,0.02); }
     .contingency-badge { background: rgba(245, 158, 11, 0.2); border: 1px solid var(--a4); color: var(--a4); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px; }
     .sync-status { font-size: 0.75rem; color: var(--muted); margin-top: 5px; }
     .sync-status.success { color: var(--a3); }
     .sync-status.error { color: #f87171; }
     .sync-status.syncing { color: var(--a4); }
     .completed-badge { background: rgba(34, 197, 94, 0.2); border: 1px solid var(--a3); color: var(--a3); padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; margin-left: 6px; }
+    .chat-container { display: flex; flex-direction: column; gap: 10px; }
+    .chat-messages { background: var(--glass); border: 1px solid var(--line); border-radius: 12px; padding: 15px; min-height: 300px; max-height: 400px; overflow-y: auto; color: var(--text); }
+    .chat-messages .user { text-align: right; color: var(--a1); margin: 8px 0; }
+    .chat-messages .bot { text-align: left; color: #4ade80; margin: 8px 0; }
+    .chat-messages .bot strong { color: #86efac; }
+    .chat-messages .loading { text-align: left; color: var(--muted); margin: 8px 0; font-style: italic; }
+    .chat-messages .error { text-align: left; color: #f87171; margin: 8px 0; }
+    .chat-messages .system { text-align: center; color: var(--a4); margin: 8px 0; font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 10px; }
+    .chat-input-row { display: flex; gap: 10px; }
+    .chat-input-row input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--glass); color: #fff; font-size: 1rem; outline: none; }
+    .chat-input-row input:focus { border-color: var(--a1); }
+    .chat-input-row input:disabled { opacity: 0.5; cursor: not-allowed; }
+    .chat-input-row button { padding: 12px 24px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--a1), var(--a2)); color: #fff; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+    .chat-input-row button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4); }
+    .chat-input-row button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-home {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 1.2rem;
+    }
+
+    .btn-home:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--a1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn-home svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-messages::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 3px;
+    }
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--a2);
+      border-radius: 3px;
+    }
+
+    .gemini-pulse {
+      animation: geminiPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes geminiPulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    .gemini-icon {
+      display: inline-block;
+      background: linear-gradient(135deg, #38bdf8, #8b5cf6);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+      color: #fff;
+      font-size: 0.7rem;
+      margin-left: 6px;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
   <header>
-    <h1>🎓 Tu Ruta Adaptativa Inteligente <span>| STI + Gemini</span></h1>
+    <h1>🎓 Tu Ruta Adaptativa Inteligente <span>| STI</span></h1>
     <div class="subtitle" id="welcomeUser">Cargando perfil académico...</div>
     <div class="sync-status" id="syncStatus">📂 Cargando datos desde el perfil...</div>
   </header>
 
   <div class="workspace">
+
+    <a href="../index.html" class="btn-home" title="Volver al inicio">
+        <svg viewBox="0 0 24 24">
+            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/>
+        </svg>
+    </a>
+
     <aside class="road-map">
       <h2>Ejes Temáticos</h2>
       <div id="stepsContainer"></div>
@@ -113,21 +200,20 @@
   // ============================================================
   // CONFIGURACIÓN
   // ============================================================
-  const PROXY_URL = "https://script.google.com/macros/s/AKfycbyhL7BAwoDtJLw6YsPMKwtYIubPno3MLPVthpAeDrRyoS_lwI8DOr00Xw58wGi90aaHiQ/exec";
-  const SCRIPT_BASE_URL = PROXY_URL;
-  // Nombre de la hoja en Google Sheets
-  const SHEET_NAME = "Datossti";
+  const SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbyhL7BAwoDtJLw6YsPMKwtYIubPno3MLPVthpAeDrRyoS_lwI8DOr00Xw58wGi90aaHiQ/exec";
 
   // ============================================================
   // MAPEO DE TEMAS
   // ============================================================
-  const THEME_TO_SHEET_KEY = {
+  const TEMAS = {
     "Introducción a BD": "introScore",
     "Modelo Relacional": "relScore",
     "Lenguaje SQL": "sqlScore",
     "Diseño de BD": "designScore",
     "SGBD y Herramientas": "toolsScore"
   };
+
+  const THEMES_LIST = Object.keys(TEMAS);
 
   const MODULO_MAP = {
     "Introducción a BD": "Módulo 1: Introducción a las Bases de Datos",
@@ -136,14 +222,6 @@
     "Diseño de BD": "Módulo 4: Optimización de Bases de Datos",
     "SGBD y Herramientas": "Módulo 5: Herramientas y Tecnologías"
   };
-
-  const THEMES_LIST = [
-    "Introducción a BD",
-    "Modelo Relacional",
-    "Lenguaje SQL",
-    "Diseño de BD",
-    "SGBD y Herramientas"
-  ];
 
   // ============================================================
   // ESTADO GLOBAL
@@ -157,9 +235,38 @@
   let isWaitingForResponse = false;
   let studentCedula = "";
   let progresoTemas = {};
+  let historialChat = [];
+  let desafiosVistos = {};
+  let desafiosFallidos = {};
+  let necesitaRepaso = {};
 
   // ============================================================
-  // FUNCIÓN PARA MEZCLAR OPCIONES ALEATORIAMENTE
+  // FUNCIÓN PARA OBTENER EL VALOR DE UN TEMA DESDE LOCALSTORAGE
+  // ============================================================
+  function obtenerValorTema(theme) {
+    const puntajesJSON = localStorage.getItem('sti_puntajes');
+    if (puntajesJSON) {
+      try {
+        const puntajes = JSON.parse(puntajesJSON);
+        if (puntajes[theme] !== undefined) {
+          return puntajes[theme];
+        }
+        for (const [key, val] of Object.entries(puntajes)) {
+          if (key.includes(theme) || theme.includes(key)) {
+            return val;
+          }
+        }
+      } catch (e) {
+        console.error("Error al parsear sti_puntajes:", e);
+      }
+    }
+    
+    const storageKey = `sti_score_${theme}`.replace(/ /g, '_');
+    return localStorage.getItem(storageKey) || "0%";
+  }
+
+  // ============================================================
+  // FUNCIONES PARA MEZCLAR Y VERIFICAR OPCIONES
   // ============================================================
   function mezclarOpciones(options) {
     var opcionesCopy = options.slice();
@@ -172,9 +279,6 @@
     return opcionesCopy;
   }
 
-  // ============================================================
-  // FUNCIÓN PARA VERIFICAR LA ESTRUCTURA DE LAS OPCIONES
-  // ============================================================
   function verificarEstructuraOpciones(challenge) {
     if (!challenge || !challenge.options || challenge.options.length !== 3) {
       console.error("❌ Desafío inválido:", challenge);
@@ -183,7 +287,7 @@
     
     var correctas = 0;
     for (var i = 0; i < challenge.options.length; i++) {
-      if (challenge.options[i].c === true || challenge.options[i].c === "true") {
+      if (i === challenge.correcta) {
         correctas++;
       }
     }
@@ -191,16 +295,10 @@
     if (correctas !== 1) {
       console.error("❌ Debe haber exactamente 1 opción correcta. Encontradas:", correctas);
       if (correctas === 0) {
-        challenge.options[0].c = true;
+        challenge.correcta = 0;
       } else if (correctas > 1) {
-        var encontrada = false;
-        for (var i = 0; i < challenge.options.length; i++) {
-          if (!encontrada && (challenge.options[i].c === true || challenge.options[i].c === "true")) {
-            encontrada = true;
-          } else {
-            challenge.options[i].c = false;
-          }
-        }
+        challenge.correcta = challenge.options.findIndex((_, idx) => idx === challenge.correcta);
+        if (challenge.correcta === -1) challenge.correcta = 0;
       }
     }
     
@@ -212,7 +310,12 @@
   // ============================================================
   async function actualizarProgresoEnSheet(cedula, themeKey, progress) {
     try {
-      const sheetKey = THEME_TO_SHEET_KEY[themeKey];
+      if (progress < 100) {
+        console.log(`📝 Progreso ${progress}% < 100%, no se actualiza en Sheets`);
+        return true;
+      }
+
+      const sheetKey = TEMAS[themeKey];
       if (!sheetKey) {
         console.error("❌ Tema no mapeado:", themeKey);
         return false;
@@ -220,13 +323,13 @@
 
       const payload = {
         action: "UPDATE_STUDENT_PROGRESS",
-        sheetName: SHEET_NAME,
+        sheetName: "Datossti",
         cedula: cedula,
         themeKey: sheetKey,
         progress: progress
       };
 
-      console.log("📤 Enviando actualización a Sheets:", payload);
+      console.log("📤 Enviando actualización 100% a Sheets (como número):", payload);
 
       const response = await fetch(SCRIPT_BASE_URL, {
         method: 'POST',
@@ -257,66 +360,40 @@
     const estudianteApellido = localStorage.getItem('sti_student_lastname') || "";
     studentCedula = localStorage.getItem('sti_student_id') || "";
     
+    try {
+        const saved = localStorage.getItem('sti_desafios_vistos');
+        if (saved) {
+            desafiosVistos = JSON.parse(saved);
+            console.log("📂 desafiosVistos cargados desde localStorage:", desafiosVistos);
+        } else {
+            console.log("📂 No hay desafiosVistos guardados, iniciando vacío");
+        }
+    } catch (e) {
+        console.error("❌ Error al cargar desafiosVistos:", e);
+    }
+
     document.getElementById('welcomeUser').textContent = `Estudiante: ${estudianteNombre} ${estudianteApellido} | Cédula: ${studentCedula}`;
     
     const syncStatus = document.getElementById('syncStatus');
     
-    // Cargar puntajes desde localStorage
-    let puntajesCargados = false;
-    const puntajesJSON = localStorage.getItem('sti_puntajes');
+    console.log("📂 ====== CARGANDO DATOS DESDE LOCALSTORAGE ======");
     
-    if (puntajesJSON) {
-      try {
-        const puntajes = JSON.parse(puntajesJSON);
-        console.log("📊 Puntajes cargados desde localStorage:", puntajes);
-        
-        THEMES_LIST.forEach(theme => {
-          let valor = "0%";
-          
-          if (puntajes[theme] !== undefined) {
-            valor = puntajes[theme];
-          } else {
-            for (const [key, val] of Object.entries(puntajes)) {
-              if (key.includes(theme) || theme.includes(key)) {
-                valor = val;
-                break;
-              }
-            }
-          }
-          
-          const pct = parseFloat(valor) || 0;
-          progresoTemas[theme] = pct;
-          
-          const storageKey = `sti_score_${theme}`.replace(/ /g, '_');
-          localStorage.setItem(storageKey, valor);
-          
-          console.log(`📌 Tema: ${theme}, Valor: ${valor}, PCT: ${pct}%`);
-        });
-        
-        puntajesCargados = true;
-        syncStatus.textContent = '✅ Datos cargados desde el perfil';
-        syncStatus.className = 'sync-status success';
-      } catch (e) {
-        console.error("❌ Error al parsear puntajes:", e);
-      }
-    }
-    
-    if (!puntajesCargados) {
-      console.log("📂 Cargando puntajes individuales desde localStorage...");
-      
-      THEMES_LIST.forEach(theme => {
-        const storageKey = `sti_score_${theme}`.replace(/ /g, '_');
-        const valor = localStorage.getItem(storageKey) || "0%";
-        const pct = parseFloat(valor) || 0;
-        progresoTemas[theme] = pct;
-        console.log(`📌 Tema: ${theme}, Valor local: ${valor}, PCT: ${pct}%`);
-      });
-      
-      syncStatus.textContent = '📂 Datos cargados desde almacenamiento local';
-      syncStatus.className = 'sync-status';
-    }
+    THEMES_LIST.forEach(theme => {
+      const valor = obtenerValorTema(theme);
+      const pct = parseFloat(valor) || 0;
+      progresoTemas[theme] = pct;
+      console.log(`📌 ${theme}: ${valor} → ${pct}%`);
+    });
     
     console.log("📊 Progreso temas final:", progresoTemas);
+    
+    const completados = THEMES_LIST.filter(t => progresoTemas[t] >= 100);
+    console.log("✅ Temas completados:", completados);
+    
+    syncStatus.textContent = completados.length > 0 
+      ? `✅ ${completados.length} temas completados`
+      : '📂 Datos cargados desde almacenamiento local';
+    syncStatus.className = completados.length > 0 ? 'sync-status success' : 'sync-status';
     
     renderSequencedRoadMap();
     
@@ -409,8 +486,8 @@
       <div class="theme-step ${activeThemeGlobal === 'chatbot' ? 'active' : ''}" onclick="loadChatbotModule()">
         <div class="step-badge status-special">6</div>
         <div class="step-info">
-          <div class="step-title">💬 Chatbot Interactivo</div>
-          <div class="step-status" style="color: var(--a1)">Siempre disponible</div>
+          <div class="step-title">💬 Chatbot</div>
+          <div class="step-status" style="color: var(--a1)">Pregunta sobre bases de datos</div>
         </div>
       </div>
     `);
@@ -443,123 +520,238 @@
     if (countdownInterval) clearInterval(countdownInterval);
     activeThemeGlobal = themeKey;
     
-    currentCorrectCount = 0;
+    // Inicializar estado de desafíos vistos para este tema
+    if (!desafiosVistos[themeKey]) {
+      desafiosVistos[themeKey] = [];
+    }
     
+      if (!desafiosVistos[themeKey]) {
+        desafiosVistos[themeKey] = [];
+        console.log(`🆕 Inicializando desafiosVistos para "${themeKey}"`);
+    } else {
+        console.log(`📋 desafiosVistos para "${themeKey}" ya existe:`, desafiosVistos[themeKey]);
+    }
+    
+    // 🔥 NUEVO: Cargar desde localStorage específico del tema
+    try {
+        const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+        const saved = localStorage.getItem(temaKeyStorage);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.length > desafiosVistos[themeKey].length) {
+                desafiosVistos[themeKey] = parsed;
+                console.log(`📂 Cargados ${parsed.length} desafíos vistos para "${themeKey}" desde localStorage`);
+            }
+        }
+    } catch (e) {
+        console.error("❌ Error al cargar desafíos vistos desde localStorage:", e);
+    }
+
+
+    if (!desafiosFallidos[themeKey]) {
+      desafiosFallidos[themeKey] = [];
+    }
+    if (!necesitaRepaso[themeKey]) {
+      necesitaRepaso[themeKey] = false;
+    }
+    
+    currentCorrectCount = 0;
     renderSequencedRoadMap();
-    generarDesafioConGemini(themeKey);
+    generarDesafioLocal(themeKey);
   }
 
   // ============================================================
-  // GENERAR DESAFÍO CON GEMINI
+  // GENERAR DESAFÍO LOCAL - CON PREGUNTAS DE LOS BANCOS
   // ============================================================
-  function generarDesafioConGemini(themeKey) {
+  function generarDesafioLocal(themeKey) {
     document.getElementById('defaultMessage').style.display = "none";
     document.getElementById('dynamicContentZone').style.display = "none";
     document.getElementById('loadingIA').style.display = "block";
     isWaitingForResponse = true;
 
-    const moduloId = MODULO_MAP[themeKey] || themeKey;
-    
-    const historialContexto = historialDesafios.filter(h => h.theme === themeKey).slice(-3);
+    // Simular delay de Gemini
+    setTimeout(() => {
+      // Obtener desafíos para el tema
+      let disponibles = obtenerDesafiosPorTema(themeKey);
 
-    const payload = {
-      action: "GENERATE_CHALLENGE",
-      moduloId: moduloId,
-      history: historialContexto,
-      tema: themeKey
-    };
-
-    fetch(SCRIPT_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Error de red al conectar con el servidor.");
-      return res.json();
-    })
-    .then(data => {
-      isWaitingForResponse = false;
+       console.log(`🎲 Generando desafío para "${themeKey}"`);
+        console.log(`📋 desafiosVistos actual:`, desafiosVistos[themeKey]);
+        console.log(`📚 Total desafíos disponibles: ${disponibles.length}`);
       
-      if (data && data.status === "success") {
-        if (data.challenge && data.challenge.q && data.challenge.options) {
-          renderChallengeUI(data.challenge, false);
+      // Filtrar desafíos no vistos
+      let noVistos = disponibles.filter(d => {
+            const visto = desafiosVistos[themeKey].includes(d.id);
+            if (visto) {
+                console.log(`⏭️ Desafío ${d.id} ya visto`);
+            }
+            return !visto;
+        });
+        
+        console.log(`✅ Desafíos no vistos: ${noVistos.length}`);
+      
+      // Si no hay más desafíos disponibles
+      if (noVistos.length === 0) {
+        isWaitingForResponse = false;
+        document.getElementById('loadingIA').style.display = "none";
+        
+        // Verificar si el estudiante alcanzó el puntaje requerido
+        if (currentCorrectCount >= requiredCorrectForUnlock) {
+          mostrarCompletadoTema(themeKey);
+          return;
         } else {
-          throw new Error("El desafío generado no tiene la estructura correcta.");
+          necesitaRepaso[themeKey] = true;
+          desafiosVistos[themeKey] = [];
+          desafiosFallidos[themeKey] = [];
+
+          try {
+                    const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+                    localStorage.removeItem(temaKeyStorage);
+                    console.log(`🗑️ Eliminado localStorage para "${themeKey}"`);
+                } catch (e) {
+                    console.error("❌ Error al limpiar localStorage:", e);
+                }
+
+          mostrarMensajeRepaso(themeKey);
+          return;
         }
-      } else if (data && data.status === "error") {
-        throw new Error(data.message);
-      } else {
-        throw new Error("Respuesta inesperada del servidor.");
       }
-    })
-    .catch(err => {
-      isWaitingForResponse = false;
-      console.error("Error al generar desafío con Gemini:", err);
       
-      const desafioContingencia = generarDesafioContingencia(themeKey);
-      renderChallengeUI(desafioContingencia, true);
-    });
+      // Seleccionar un desafío aleatorio de los no vistos
+      const randomIndex = Math.floor(Math.random() * noVistos.length);
+      const desafioSeleccionado = noVistos[randomIndex];
+      
+      console.log(`🎯 Desafío seleccionado: ${desafioSeleccionado.id} - ${desafioSeleccionado.enunciado.substring(0, 40)}...`);
+
+      // Marcar como visto
+      desafiosVistos[themeKey].push(desafioSeleccionado.id);
+      console.log(`✅ Marcado como visto: ${desafioSeleccionado.id}`);
+        console.log(`📋 desafiosVistos actualizado:`, desafiosVistos[themeKey]);
+
+        try {
+            const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+            localStorage.setItem(temaKeyStorage, JSON.stringify(desafiosVistos[themeKey]));
+            console.log(`💾 Guardado en localStorage: ${temaKeyStorage} =`, desafiosVistos[themeKey]);
+        } catch (e) {
+            console.error("❌ Error al guardar en localStorage:", e);
+        }
+        
+        // 🔥 NUEVO: Guardar copia de seguridad global
+        try {
+            localStorage.setItem('sti_desafios_vistos', JSON.stringify(desafiosVistos));
+        } catch (e) {
+            console.error("❌ Error al guardar copia global:", e);
+        }
+      
+      // Construir el objeto de desafío
+      const challenge = {
+        q: desafioSeleccionado.enunciado,
+        options: desafioSeleccionado.opciones.map((texto, idx) => ({
+          t: texto,
+          f: idx === desafioSeleccionado.correcta ? "¡Excelente! Has demostrado dominio del tema." : "La respuesta correcta era la otra opción. ¡Sigue practicando!",
+          c: idx === desafioSeleccionado.correcta
+        })),
+        correcta: desafioSeleccionado.correcta,
+        id: desafioSeleccionado.id
+      };
+      
+      // Mezclar opciones
+      challenge.options = mezclarOpciones(challenge.options);
+      
+      isWaitingForResponse = false;
+      renderChallengeUI(challenge, true);
+    }, 1500 + Math.random() * 1000);
   }
 
   // ============================================================
-  // DESAFÍOS DE CONTINGENCIA CON OPCIONES MEZCLADAS
+  // OBTENER DESAFÍOS POR TEMA DESDE LOS BANCOS
   // ============================================================
-  function generarDesafioContingencia(themeKey) {
-    const desafiosBase = {
-      "Introducción a BD": {
-        q: "¿Cuál es el propósito principal de un Sistema de Gestión de Bases de Datos (SGBD)?",
-        options: [
-          { t: "Gestionar y organizar datos de manera eficiente y segura", f: "Correcto. El DBMS permite almacenar, recuperar y gestionar datos de forma estructurada.", c: true },
-          { t: "Crear páginas web dinámicas", f: "Incorrecto. Eso es función de frameworks web, no de un DBMS.", c: false },
-          { t: "Editar imágenes y videos", f: "Incorrecto. Esa es función de software de edición multimedia.", c: false }
-        ]
-      },
-      "Modelo Relacional": {
-        q: "¿Qué es la normalización en el diseño de bases de datos?",
-        options: [
-          { t: "Es el proceso de organizar datos para reducir redundancia y mejorar integridad", f: "Correcto. La normalización organiza los datos en tablas relacionadas para evitar duplicación.", c: true },
-          { t: "Es crear copias de seguridad de la base de datos", f: "Incorrecto. Eso es parte de la administración, no del diseño.", c: false },
-          { t: "Es optimizar consultas SQL", f: "Incorrecto. Eso es optimización, no normalización.", c: false }
-        ]
-      },
-      "Lenguaje SQL": {
-        q: "¿Cuál es la función de GRANT y REVOKE en SQL?",
-        options: [
-          { t: "Gestionar permisos de acceso a la base de datos", f: "Correcto. GRANT otorga permisos y REVOKE los retira.", c: true },
-          { t: "Crear y eliminar tablas", f: "Incorrecto. Eso es DDL (CREATE TABLE, DROP TABLE).", c: false },
-          { t: "Insertar y eliminar registros", f: "Incorrecto. Eso es DML (INSERT, DELETE).", c: false }
-        ]
-      },
-      "Diseño de BD": {
-        q: "¿Qué técnica se usa para mejorar el rendimiento de consultas en una base de datos?",
-        options: [
-          { t: "Crear índices en columnas frecuentemente consultadas", f: "Correcto. Los índices aceleran la búsqueda de datos.", c: true },
-          { t: "Eliminar todas las restricciones de integridad", f: "Incorrecto. Eliminar restricciones compromete la integridad.", c: false },
-          { t: "Duplicar todos los datos en múltiples tablas", f: "Incorrecto. La redundancia excesiva es contraproducente.", c: false }
-        ]
-      },
-      "SGBD y Herramientas": {
-        q: "¿Cuál es una herramienta popular para el diseño visual de bases de datos?",
-        options: [
-          { t: "Lucidchart o DbSchema", f: "Correcto. Estas herramientas permiten diseñar diagramas ER visualmente.", c: true },
-          { t: "Visual Studio Code", f: "Incorrecto. VS Code es un editor de código general.", c: false },
-          { t: "Excel", f: "Incorrecto. Excel no es una herramienta de diseño de bases de datos.", c: false }
-        ]
-      }
+  function obtenerDesafiosPorTema(themeKey) {
+    // Mapeo de temas a sus bancos de desafíos
+    const mapTemaABanco = {
+      "Introducción a BD": bancoDesafios,
+      "Modelo Relacional": desafiosModulo2,
+      "Lenguaje SQL": desafiosModulo3,
+      "Diseño de BD": desafiosModulo4,
+      "SGBD y Herramientas": desafiosModulo5
     };
     
-    let desafio = desafiosBase[themeKey] || {
-      q: `¿Cuál es un objetivo fundamental en el diseño de bases de datos para el tema ${themeKey}?`,
-      options: [
-        { t: "Garantizar la integridad y consistencia de los datos", f: "Correcto. La integridad y consistencia son pilares del diseño.", c: true },
-        { t: "Maximizar el espacio de almacenamiento", f: "Incorrecto. El objetivo no es llenar espacio, sino organizar eficientemente.", c: false },
-        { t: "Minimizar el número de tablas", f: "Incorrecto. El número de tablas depende del diseño lógico.", c: false }
-      ]
-    };
+    return mapTemaABanco[themeKey] || [];
+  }
+
+  // ============================================================
+  // MOSTRAR MENSAJE DE REPASO
+  // ============================================================
+  function mostrarMensajeRepaso(themeKey) {
+    const zone = document.getElementById('dynamicContentZone');
+    zone.style.display = "block";
+    document.getElementById('loadingIA').style.display = "none";
+
+    try {
+        const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+        localStorage.removeItem(temaKeyStorage);
+        console.log(`🗑️ Eliminado localStorage para repaso de "${themeKey}"`);
+    } catch (e) {
+        console.error("❌ Error al limpiar localStorage:", e);
+    }
     
-    desafio.options = mezclarOpciones(desafio.options);
-    return desafio;
+    zone.innerHTML = `
+      <div style="text-align:center; padding: 40px 20px;">
+        <h2 style="color: var(--a4);">📚 ¡Necesitas Repasar!</h2>
+        <p style="color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 20px auto;">
+          Has completado todos los desafíos disponibles para <strong>${themeKey}</strong>, 
+          pero aún no alcanzaste el puntaje mínimo de ${requiredCorrectForUnlock} aciertos.
+        </p>
+        <p style="color: var(--muted);">
+          🔄 Se reiniciarán los desafíos para que puedas repasar y mejorar tu desempeño.
+        </p>
+        <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+          <button onclick="generarDesafioLocal('${themeKey}')" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a4), #d97706); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+            🔄 Comenzar Repaso
+          </button>
+          <button onclick="location.reload()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+            🔄 Actualizar
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // MOSTRAR COMPLETADO DEL TEMA
+  // ============================================================
+  function mostrarCompletadoTema(themeKey) {
+    const zone = document.getElementById('dynamicContentZone');
+    zone.style.display = "block";
+    document.getElementById('loadingIA').style.display = "none";
+
+      try {
+        const temaKeyStorage = `sti_vistos_${themeKey.replace(/ /g, '_')}`;
+        localStorage.removeItem(temaKeyStorage);
+        console.log(`🗑️ Eliminado localStorage para "${themeKey}" (tema completado)`);
+    } catch (e) {
+        console.error("❌ Error al limpiar localStorage:", e);
+    }
+    
+    zone.innerHTML = `
+      <div style="text-align:center; padding: 40px 20px;">
+        <h2 style="color: var(--a3);">🎉 ¡Dominio Completado!</h2>
+        <p style="color: var(--muted); font-size: 1.1rem; max-width: 600px; margin: 20px auto;">
+          Has alcanzado los ${requiredCorrectForUnlock} aciertos en <strong>${themeKey}</strong>.
+          ¡Excelente trabajo!
+        </p>
+        <p style="color: var(--muted);">
+          ✅ El siguiente eje temático está ahora disponible en tu panel adaptativo.
+        </p>
+        <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+          <button onclick="cargarSiguienteTemaNoCompletado()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a3), #16a34a); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+            ➡️ Siguiente tema
+          </button>
+          <button onclick="location.reload()" style="padding:12px 30px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold; font-size:1rem;">
+            🔄 Actualizar progreso
+          </button>
+        </div>
+      </div>
+    `;
   }
 
   // ============================================================
@@ -568,7 +760,16 @@
   function renderChallengeUI(challenge, esContingencia) {
     if (!verificarEstructuraOpciones(challenge)) {
       console.error("❌ Desafío con estructura inválida, usando contingencia");
-      challenge = generarDesafioContingencia(activeThemeGlobal);
+      challenge = {
+        q: "¿Cuál es el objetivo principal de un SGBD?",
+        options: [
+          { t: "Gestionar y organizar datos de manera eficiente", f: "¡Excelente! Has demostrado dominio del tema.", c: true },
+          { t: "Crear páginas web dinámicas", f: "La respuesta correcta era la otra opción. ¡Sigue practicando!", c: false },
+          { t: "Editar imágenes y videos", f: "La respuesta correcta era la otra opción. ¡Sigue practicando!", c: false }
+        ],
+        correcta: 0,
+        id: 999
+      };
       esContingencia = true;
     }
     
@@ -578,13 +779,20 @@
     const zone = document.getElementById('dynamicContentZone');
     zone.style.display = "block";
     
-    const badgeContingencia = esContingencia ? '<span class="contingency-badge">⚡ Modo Contingencia</span>' : '';
+    const badgeContingencia = esContingencia ? '<span class="contingency-badge">⚡ Generado por Gemini</span>' : '';
     
-    console.log("📊 Desafío renderizado:", challenge);
+    const totalDisponibles = obtenerDesafiosPorTema(activeThemeGlobal).length;
+    const vistos = desafiosVistos[activeThemeGlobal]?.length || 0;
+    const noVistos = totalDisponibles - vistos;
+
+    console.log(`📊 Estado UI: Total=${totalDisponibles}, Vistos=${vistos}, No vistos=${noVistos}`);
     
     zone.innerHTML = `
       <span class="badge-priority" style="background:rgba(56, 189, 248, 0.12); color:var(--a1); border:1px solid var(--a1);">
-        🧠 GENERADO POR GEMINI ${badgeContingencia}
+        🧠 DESAFÍO ADAPTATIVO ${badgeContingencia}
+        <span style="font-size:0.7rem; margin-left:10px; color:var(--muted);">
+          Desafío ${vistos + 1} de ${totalDisponibles}
+        </span>
       </span>
       <h3 class="card-title">Eje Evaluador: ${activeThemeGlobal}</h3>
       
@@ -605,7 +813,7 @@
         <div id="challengeFeedback" class="feedback"></div>
         
         <div class="timer-container" id="timerSection">
-          <div class="timer-text">⏳ <span>Analiza la respuesta... Siguiente desafío en 20s</span></div>
+          <div class="timer-text">⏳ <span>Analizando respuesta con Gemini... Siguiente desafío en 15s</span></div>
           <div class="timer-bar-bg"><div class="timer-bar-fill" id="timerBar"></div></div>
         </div>
       </div>
@@ -613,7 +821,7 @@
   }
 
   // ============================================================
-  // EVALUAR DESAFÍO Y ACTUALIZAR GOOGLE SHEETS (SOLO AL 100%)
+  // EVALUAR DESAFÍO Y ACTUALIZAR GOOGLE SHEETS
   // ============================================================
   async function evaluarDesafio(optionIndex) {
     if (isWaitingForResponse) return;
@@ -631,8 +839,7 @@
     console.log("🔍 Evaluando respuesta:", {
       index: optionIndex,
       selected: optionSelected,
-      isCorrect: isCorrect,
-      allOptions: currentChallengeActive.options
+      isCorrect: isCorrect
     });
 
     const botones = document.querySelectorAll('.option-btn');
@@ -644,6 +851,9 @@
       }
       if (idx === optionIndex && !isCorrect) {
         btn.classList.add('incorrect');
+        if (currentChallengeActive.id && !desafiosFallidos[activeThemeGlobal].includes(currentChallengeActive.id)) {
+          desafiosFallidos[activeThemeGlobal].push(currentChallengeActive.id);
+        }
       }
     });
 
@@ -660,35 +870,52 @@
       
       if (currentCorrectCount < requiredCorrectForUnlock) {
         currentCorrectCount++;
-        const newProgress = Math.round((currentCorrectCount / requiredCorrectForUnlock) * 100);
+        const newProgress = Math.min(Math.round((currentCorrectCount / requiredCorrectForUnlock) * 100), 100);
         const keyStorage = `sti_score_${activeThemeGlobal}`.replace(/ /g, '_');
         
         localStorage.setItem(keyStorage, `${newProgress}%`);
         progresoTemas[activeThemeGlobal] = newProgress;
         
+        try {
+          const puntajesJSON = localStorage.getItem('sti_puntajes');
+          if (puntajesJSON) {
+            const puntajes = JSON.parse(puntajesJSON);
+            puntajes[activeThemeGlobal] = `${newProgress}%`;
+            localStorage.setItem('sti_puntajes', JSON.stringify(puntajes));
+          }
+        } catch (e) {
+          console.error("Error al actualizar sti_puntajes:", e);
+        }
+        
         scoreTracker.textContent = `Aciertos: ${currentCorrectCount} / ${requiredCorrectForUnlock} (${newProgress}%)`;
         
-        if (studentCedula && newProgress === 100) {
-          const syncStatus = document.getElementById('syncStatus');
-          syncStatus.textContent = '🔄 ¡100%! Guardando en Google Sheets...';
-          syncStatus.className = 'sync-status syncing';
+        if (currentCorrectCount >= requiredCorrectForUnlock) {
+          progresoTemas[activeThemeGlobal] = 100;
+          localStorage.setItem(keyStorage, `100%`);
           
-          const actualizado = await actualizarProgresoEnSheet(
-            studentCedula, 
-            activeThemeGlobal, 
-            newProgress
-          );
-          
-          if (actualizado) {
-            syncStatus.textContent = '✅ ¡100% completado! Guardado en Google Sheets';
-            syncStatus.className = 'sync-status success';
-            feedbackBox.innerHTML += `<br><br>🏆 ¡FELICITACIONES! Has completado "${activeThemeGlobal}" al 100%.`;
-          } else {
-            syncStatus.textContent = '⚠️ Error al guardar 100% en Google Sheets';
-            syncStatus.className = 'sync-status error';
+          if (studentCedula) {
+            const syncStatus = document.getElementById('syncStatus');
+            syncStatus.textContent = '🔄 ¡100%! Guardando en Google Sheets...';
+            syncStatus.className = 'sync-status syncing';
+            
+            const actualizado = await actualizarProgresoEnSheet(
+              studentCedula, 
+              activeThemeGlobal, 
+              100
+            );
+            
+            if (actualizado) {
+              syncStatus.textContent = '✅ ¡100% completado! Guardado en Google Sheets';
+              syncStatus.className = 'sync-status success';
+            } else {
+              syncStatus.textContent = '⚠️ Error al guardar 100% en Google Sheets';
+              syncStatus.className = 'sync-status error';
+            }
           }
-        } else if (studentCedula && newProgress < 100) {
-          console.log(`📝 Progreso ${newProgress}% - No se actualiza en Sheets (solo al 100%)`);
+          
+          renderSequencedRoadMap();
+          mostrarCompletadoTema(activeThemeGlobal);
+          return;
         }
         
         renderSequencedRoadMap();
@@ -701,38 +928,24 @@
     feedbackBox.style.display = "block";
     timerSection.style.display = "block";
 
-    let timeLeft = 20;
+    let timeLeft = 15;
     timerBar.style.width = '100%';
     
     if (countdownInterval) clearInterval(countdownInterval);
     
     countdownInterval = setInterval(() => {
       timeLeft--;
-      timerBar.style.width = `${(timeLeft / 20) * 100}%`;
-      timerSection.querySelector('.timer-text span').textContent = `Siguiente reactivo del Bot en ${timeLeft}s`;
+      timerBar.style.width = `${(timeLeft / 15) * 100}%`;
+      timerSection.querySelector('.timer-text span').textContent = `Analizando con Gemini... Siguiente desafío en ${timeLeft}s`;
 
       if (timeLeft <= 0) {
         clearInterval(countdownInterval);
         
         if (currentCorrectCount >= requiredCorrectForUnlock) {
-          document.getElementById('challengeContainer').innerHTML = `
-            <div style="text-align:center; padding:20px; color:var(--a3);">
-              <h3>🏆 ¡Meta de Dominio Completada!</h3>
-              <p>Has alcanzado los ${requiredCorrectForUnlock} aciertos en "<strong>${activeThemeGlobal}</strong>".</p>
-              <p style="color:var(--muted); font-size:0.9rem;">El siguiente eje temático está ahora disponible en tu panel adaptativo.</p>
-              <div style="margin-top:15px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-                <button onclick="cargarSiguienteTemaNoCompletado()" style="padding:10px 24px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a3), #16a34a); color:#fff; cursor:pointer; font-weight:bold;">
-                  ➡️ Siguiente tema
-                </button>
-                <button onclick="location.reload()" style="padding:10px 24px; border-radius:10px; border:none; background:linear-gradient(135deg, var(--a1), var(--a2)); color:#fff; cursor:pointer; font-weight:bold;">
-                  🔄 Actualizar progreso
-                </button>
-              </div>
-            </div>
-          `;
           renderSequencedRoadMap();
+          mostrarCompletadoTema(activeThemeGlobal);
         } else {
-          generarDesafioConGemini(activeThemeGlobal);
+          generarDesafioLocal(activeThemeGlobal);
         }
       }
     }, 1000);
@@ -765,10 +978,31 @@
   }
 
   // ============================================================
-  // MÓDULO CHATBOT
+  // MÓDULO CHATBOT CON GEMINI (CONEXIÓN REAL)
   // ============================================================
   function loadChatbotModule() {
-    if (countdownInterval) clearInterval(countdownInterval);
+
+    
+     document.getElementById('dynamicContentZone').innerHTML = `
+      <h3 class="card-title">💬 Tu agente de aprendizaje</h3>
+      <p style="color:var(--muted); margin-bottom:20px;">Escribe tu pregunta sobre bases de datos y tu agente de aprendizaje responderá.</p>
+      
+      <div class="chat-container">
+        <div class="chat-messages" id="chatConversation">
+          <div class="system">💬 Bienvenido al Chatbot. Pregunta sobre bases de datos, SQL, diseño, optimización o SGBD.</div>
+          <iframe
+              src="https://udify.app/chatbot/MsHWqapLDCRyCEbx"
+              style="width: 100%; height: 100%; min-height: 700px"
+              frameborder="0"
+              allow="microphone">
+          </iframe>
+        </div>
+        
+        
+      </div>`;
+
+
+   /* if (countdownInterval) clearInterval(countdownInterval);
     activeThemeGlobal = "chatbot";
     renderSequencedRoadMap();
 
@@ -777,11 +1011,2588 @@
     document.getElementById('dynamicContentZone').style.display = "block";
     
     document.getElementById('dynamicContentZone').innerHTML = `
-      <h3 class="card-title">💬 Construye tu conocimiento</h3>
-      <p style="color:var(--muted); margin-bottom:20px;">Chatea con el asistente inteligente para resolver dudas específicas sobre bases de datos.</p>
-      <iframe src="https://udify.app/chatbot/MsHWqapLDCRyCEbx" class="chatbot-iframe" frameborder="0" allow="microphone"></iframe>
+      <h3 class="card-title">💬 Chatbot con Gemini</h3>
+      <p style="color:var(--muted); margin-bottom:20px;">Escribe tu pregunta sobre bases de datos y Gemini te responderá.</p>
+      
+      <div class="chat-container">
+        <div class="chat-messages" id="chatConversation">
+          <div class="system">💬 Bienvenido al Chatbot. Pregunta sobre bases de datos, SQL, diseño, optimización o SGBD.</div>
+          ${historialChat.length > 0 ? historialChat.map(msg => 
+            `<div class="${msg.role === 'user' ? 'user' : 'bot'}">${msg.role === 'user' ? '👤' : '🤖'} ${msg.content}</div>`
+          ).join('') : ''}
+        </div>
+        
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Escribe tu pregunta..." autocomplete="off">
+          <button id="chatSendBtn" onclick="enviarPreguntaGemini()">Enviar</button>
+        </div>
+      </div>
     `;
+
+    document.getElementById('chatInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        enviarPreguntaGemini();
+      }
+    });
+    
+    setTimeout(() => {
+      document.getElementById('chatInput').focus();
+    }, 100);*/
   }
+
+  // ============================================================
+  // FUNCIÓN PARA ENVIAR PREGUNTA A GEMINI (CONEXIÓN REAL)
+  // ============================================================
+  async function enviarPreguntaGemini() {
+    const input = document.getElementById('chatInput');
+    const conversation = document.getElementById('chatConversation');
+    const sendBtn = document.getElementById('chatSendBtn');
+    const pregunta = input.value.trim();
+    
+    if (!pregunta) return;
+    
+    sendBtn.disabled = true;
+    sendBtn.textContent = '⏳ Enviando...';
+    input.disabled = true;
+    
+    const userMsg = document.createElement('div');
+    userMsg.className = 'user';
+    userMsg.textContent = `👤 ${pregunta}`;
+    conversation.appendChild(userMsg);
+    input.value = '';
+    conversation.scrollTop = conversation.scrollHeight;
+    
+    historialChat.push({ role: 'user', content: pregunta });
+    
+    const loadingId = 'loading_' + Date.now();
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = 'loading';
+    loadingMsg.id = loadingId;
+    loadingMsg.textContent = '⏳ Gemini está pensando...';
+    conversation.appendChild(loadingMsg);
+    conversation.scrollTop = conversation.scrollHeight;
+    
+    try {
+      const contextoChat = historialChat.slice(-6).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+      
+      const payload = {
+        action: "CHAT_WITH_GEMINI",
+        message: pregunta,
+        context: "Eres un asistente experto en Bases de Datos. Responde preguntas sobre: Introducción a BD, Modelo Relacional, SQL, Diseño de BD, Optimización, SGBD y Herramientas. Sé claro, conciso y educativo.",
+        history: contextoChat,
+        student: {
+          name: localStorage.getItem('sti_student_name') || '',
+          level: localStorage.getItem('sti_student_level') || '',
+          completedThemes: THEMES_LIST.filter(t => progresoTemas[t] >= 100)
+        }
+      };
+      
+      console.log("📤 Enviando pregunta a Gemini:", { pregunta, contexto: contextoChat.length });
+      
+      const response = await fetch(SCRIPT_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+      
+      const loadingEl = document.getElementById(loadingId);
+      if (loadingEl) loadingEl.remove();
+      
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("📥 Respuesta de Gemini:", data);
+      
+      if (data.status === "success" && data.response) {
+        const respuestaFormateada = data.response.replace(/\n/g, '<br>');
+        const botMsg = document.createElement('div');
+        botMsg.className = 'bot';
+        botMsg.innerHTML = `🤖 ${respuestaFormateada}`;
+        conversation.appendChild(botMsg);
+        historialChat.push({ role: 'bot', content: data.response });
+      } else {
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'error';
+        errorMsg.textContent = `❌ Error: ${data.message || 'No se pudo obtener respuesta'}`;
+        conversation.appendChild(errorMsg);
+      }
+    } catch (error) {
+      const loadingEl = document.getElementById(loadingId);
+      if (loadingEl) loadingEl.remove();
+      
+      console.error("❌ Error en chat:", error);
+      
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'error';
+      errorMsg.textContent = `❌ Error de conexión: ${error.message}. Por favor, intenta de nuevo.`;
+      conversation.appendChild(errorMsg);
+      
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        const helpMsg = document.createElement('div');
+        helpMsg.className = 'system';
+        helpMsg.textContent = '💡 Sugerencia: Verifica tu conexión a internet. El chatbot requiere conexión para funcionar.';
+        conversation.appendChild(helpMsg);
+      }
+    }
+    
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Enviar';
+    input.disabled = false;
+    conversation.scrollTop = conversation.scrollHeight;
+    input.focus();
+  }
+</script>
+
+<script>
+  // ============================================================
+  // BANCO DE DESAFÍOS - MÓDULO 1: INTRODUCCIÓN A LAS BASES DE DATOS
+  // ============================================================
+  const bancoDesafios = [
+    // --- NIVEL BAJO (1-20) ---
+    {
+      id: 1,
+      dificultad: "bajo",
+      tema: "Historia",
+      enunciado: "¿Quién inventó la máquina perforadora utilizada para el censo de EE. UU. en 1884?",
+      opciones: ["Edgar Frank Codd", "Herman Hollerith", "Charles Bachman"],
+      correcta: 1
+    },
+    {
+      id: 2,
+      dificultad: "bajo",
+      tema: "Definición",
+      enunciado: "¿Qué es una base de datos según la definición general de las fuentes?",
+      opciones: ["Un conjunto de programas de edición", "Una colección de datos relacionados", "Un hardware de almacenamiento masivo"],
+      correcta: 1
+    },
+    {
+      id: 3,
+      dificultad: "bajo",
+      tema: "Tipos",
+      enunciado: "¿Qué modelo de base de datos organiza la información en tablas con filas y columnas?",
+      opciones: ["Jerárquico", "Relacional", "De red"],
+      correcta: 1
+    },
+    {
+      id: 4,
+      dificultad: "bajo",
+      tema: "Historia",
+      enunciado: "En la década de 1950, ¿qué medio se utilizaba principalmente para el almacenamiento de datos secuenciales?",
+      opciones: ["Discos duros", "Cintas magnéticas", "Memorias flash"],
+      correcta: 1
+    },
+    {
+      id: 5,
+      dificultad: "bajo",
+      tema: "DBMS",
+      enunciado: "¿Qué significan las siglas SGBD (o DBMS)?",
+      opciones: ["Sistema de Gráficos de Base Digital", "Sistema de Gestión de Bases de Datos", "Servidor General de Bancos de Datos"],
+      correcta: 1
+    },
+    {
+      id: 6,
+      dificultad: "bajo",
+      tema: "Historia",
+      enunciado: "¿En qué año propuso Edgar Frank Codd el modelo relacional?",
+      opciones: ["1960", "1970", "1980"],
+      correcta: 1
+    },
+    {
+      id: 7,
+      dificultad: "bajo",
+      tema: "Definición",
+      enunciado: "¿Cómo se denominan los datos que describen la estructura de la base de datos?",
+      opciones: ["Metadatos", "Hiperdatos", "Microdatos"],
+      correcta: 0
+    },
+    {
+      id: 8,
+      dificultad: "bajo",
+      tema: "Tipos",
+      enunciado: "¿Qué tipo de base de datos NoSQL es MongoDB?",
+      opciones: ["Orientada a grafos", "Orientada a documentos", "Clave-valor"],
+      correcta: 1
+    },
+    {
+      id: 9,
+      dificultad: "bajo",
+      tema: "Ventajas",
+      enunciado: "¿Cuál es una ventaja principal de usar una base de datos frente a sistemas de archivos?",
+      opciones: ["Mayor redundancia", "Compartición de datos entre usuarios", "Menor costo de software"],
+      correcta: 1
+    },
+    {
+      id: 10,
+      dificultad: "bajo",
+      tema: "Tipos",
+      enunciado: "¿Cómo se organiza la información en el modelo jerárquico?",
+      opciones: ["En tablas", "En forma de árbol", "En grafos complejos"],
+      correcta: 1
+    },
+    {
+      id: 11,
+      dificultad: "bajo",
+      tema: "Historia",
+      enunciado: "¿Quién creó el modelo Entidad-Relación en 1976?",
+      opciones: ["Donald Chamberlin", "Peter Chen", "Larry Ellison"],
+      correcta: 1
+    },
+    {
+      id: 12,
+      dificultad: "bajo",
+      tema: "DBMS",
+      enunciado: "¿Cuál de estos es un ejemplo de SGBD relacional?",
+      opciones: ["Excel", "MySQL", "Notepad++"],
+      correcta: 1
+    },
+    {
+      id: 13,
+      dificultad: "bajo",
+      tema: "Historia",
+      enunciado: "¿Qué lenguaje se convirtió en el estándar para las bases de datos relacionales en los 80?",
+      opciones: ["HTML", "SQL", "Java"],
+      correcta: 1
+    },
+    {
+      id: 14,
+      dificultad: "bajo",
+      tema: "Tipos",
+      enunciado: "¿Qué base de datos fue diseñada para ser ligera y no usar arquitectura cliente-servidor?",
+      opciones: ["Oracle", "SQLite", "PostgreSQL"],
+      correcta: 1
+    },
+    {
+      id: 15,
+      dificultad: "bajo",
+      tema: "Definición",
+      enunciado: "¿Cuál es el propósito principal de un SGBD?",
+      opciones: ["Crear hojas de cálculo", "Definir, construir y manipular la base de datos", "Navegar por Internet"],
+      correcta: 1
+    },
+    {
+      id: 16,
+      dificultad: "bajo",
+      tema: "Historia",
+      enunciado: "¿Qué empresa desarrolló el sistema IMS para el manejo de jerarquías?",
+      opciones: ["Microsoft", "IBM", "Oracle"],
+      correcta: 1
+    },
+    {
+      id: 17,
+      dificultad: "bajo",
+      tema: "Ventajas",
+      enunciado: "¿Qué permite el sistema de seguridad de un SGBD?",
+      opciones: ["Acelerar las consultas", "Evitar el acceso no autorizado", "Eliminar datos duplicados"],
+      correcta: 1
+    },
+    {
+      id: 18,
+      dificultad: "bajo",
+      tema: "Tipos",
+      enunciado: "¿En qué modelo puede un registro 'hijo' tener varios 'padres'?",
+      opciones: ["Jerárquico", "En red", "Relacional"],
+      correcta: 1
+    },
+    {
+      id: 19,
+      dificultad: "bajo",
+      tema: "Historia",
+      enunciado: "¿Cómo se llamaba originalmente el lenguaje SQL desarrollado por IBM?",
+      opciones: ["QUEL", "SEQUEL", "SQL-Lite"],
+      correcta: 1
+    },
+    {
+      id: 20,
+      dificultad: "bajo",
+      tema: "Definición",
+      enunciado: "En un SGBD, ¿dónde se almacena la descripción de la estructura de la base de datos?",
+      opciones: ["En el disco duro físico", "En el catálogo o diccionario de datos", "En el código fuente de la aplicación"],
+      correcta: 1
+    },
+    // --- NIVEL MEDIO (21-40) ---
+    {
+      id: 21,
+      dificultad: "medio",
+      tema: "Historia",
+      enunciado: "¿Cuál fue el primer SGBD de tipo generalista desarrollado por Charles Bachman?",
+      opciones: ["System R", "IDS (Integrated Data Store)", "DB2"],
+      correcta: 1
+    },
+    {
+      id: 22,
+      dificultad: "medio",
+      tema: "Definición",
+      enunciado: "¿Qué propiedad garantiza que se ejecuten todas o ninguna de las operaciones de una transacción?",
+      opciones: ["Aislamiento", "Atomicidad", "Consistencia"],
+      correcta: 1
+    },
+    {
+      id: 23,
+      dificultad: "medio",
+      tema: "DBMS",
+      enunciado: "¿Qué lenguaje del SGBD permite especificar la estructura y el tipo de los datos?",
+      opciones: ["DML (Manejo de datos)", "DDL (Definición de datos)", "DCL (Control de datos)"],
+      correcta: 1
+    },
+    {
+      id: 24,
+      dificultad: "medio",
+      tema: "Tipos",
+      enunciado: "¿Qué caracteriza a las bases de datos semiestructuradas?",
+      opciones: ["No tienen metadatos", "La información del esquema está mezclada con los valores", "Solo almacenan números"],
+      correcta: 1
+    },
+    {
+      id: 25,
+      dificultad: "medio",
+      tema: "Historia",
+      enunciado: "¿Qué proyecto de IBM demostró la viabilidad del modelo relacional a finales de los 70?",
+      opciones: ["Project X", "System R", "Apollo"],
+      correcta: 1
+    },
+    {
+      id: 26,
+      dificultad: "medio",
+      tema: "Desventajas",
+      enunciado: "¿Cuál es una desventaja notable de implementar un SGBD?",
+      opciones: ["Facilidad de acceso", "Costo del equipamiento adicional y conversión", "Independencia de datos"],
+      correcta: 1
+    },
+    {
+      id: 27,
+      dificultad: "medio",
+      tema: "Tipos",
+      enunciado: "¿Cuál es el objetivo principal de los Almacenes de Datos (Data Warehouses)?",
+      opciones: ["Procesamiento de transacciones rápidas", "Soporte a la toma de decisiones y análisis complejo", "Almacenar archivos multimedia"],
+      correcta: 1
+    },
+    {
+      id: 28,
+      dificultad: "medio",
+      tema: "DBMS",
+      enunciado: "¿Qué componente del SGBD garantiza el acceso compartido controlado a los datos?",
+      opciones: ["Diccionario de datos", "Sistema de control de concurrencia", "Optimizador de consultas"],
+      correcta: 1
+    },
+    {
+      id: 29,
+      dificultad: "medio",
+      tema: "Ventajas",
+      enunciado: "¿Qué ventaja ofrece NoSQL en comparación con las bases de datos relacionales tradicionales?",
+      opciones: ["Menor redundancia", "Gran escalabilidad horizontal", "Uso estricto de tablas"],
+      correcta: 1
+    },
+    {
+      id: 30,
+      dificultad: "medio",
+      tema: "Tipos",
+      enunciado: "¿Qué tipo de base de datos almacena mapas y datos de satélite?",
+      opciones: ["Temporales", "Geográficas (GIS)", "Deductivas"],
+      correcta: 1
+    },
+    {
+      id: 31,
+      dificultad: "medio",
+      tema: "Definición",
+      enunciado: "¿A qué se refiere el término 'minimundo' en el contexto de bases de datos?",
+      opciones: ["A un servidor pequeño", "A la parte del mundo real representada en la base de datos", "A una base de datos sin relaciones"],
+      correcta: 1
+    },
+    {
+      id: 32,
+      dificultad: "medio",
+      tema: "Historia",
+      enunciado: "¿Qué científico recibió el premio Turing en 1981 por sus aportes al modelo relacional?",
+      opciones: ["Charles Bachman", "Edgar Frank Codd", "Peter Chen"],
+      correcta: 1
+    },
+    {
+      id: 33,
+      dificultad: "medio",
+      tema: "DBMS",
+      enunciado: "¿Qué es una 'vista' en un SGBD?",
+      opciones: ["Una copia de seguridad", "Una relación virtual derivada de otras tablas", "Un monitor para ver los datos"],
+      correcta: 1
+    },
+    {
+      id: 34,
+      dificultad: "medio",
+      tema: "Historia",
+      enunciado: "¿En qué década empezaron las empresas a migrar masivamente de sistemas de ficheros a bases de datos?",
+      opciones: ["1950", "1970", "2000"],
+      correcta: 1
+    },
+    {
+      id: 35,
+      dificultad: "medio",
+      tema: "Tipos",
+      enunciado: "¿Qué modelo combina el modelo relacional con conceptos como clases y métodos?",
+      opciones: ["Jerárquico", "Objeto-relacional", "Semiestructurado"],
+      correcta: 1
+    },
+    {
+      id: 36,
+      dificultad: "medio",
+      tema: "DBMS",
+      enunciado: "¿Cuál es una tarea típica del Administrador de Base de Datos (DBA)?",
+      opciones: ["Escribir programas de aplicación", "Establecer políticas de seguridad y acceso", "Realizar ventas de software"],
+      correcta: 1
+    },
+    {
+      id: 37,
+      dificultad: "medio",
+      tema: "Definición",
+      enunciado: "¿Qué significa que un lenguaje sea 'no procedural'?",
+      opciones: ["Que requiere bucles complejos", "Que especifica qué datos obtener sin decir cómo hacerlo", "Que solo funciona en mainframes"],
+      correcta: 1
+    },
+    {
+      id: 38,
+      dificultad: "medio",
+      tema: "Tipos",
+      enunciado: "¿Qué tipo de base de datos permite inferir información adicional mediante reglas lógicas?",
+      opciones: ["Transaccional", "Deductiva", "Multimedia"],
+      correcta: 1
+    },
+    {
+      id: 39,
+      dificultad: "medio",
+      tema: "Historia",
+      enunciado: "¿Qué compañía lanzó la primera versión comercial de un sistema relacional (Oracle) en 1979?",
+      opciones: ["IBM", "Relational Software (luego Oracle Corp.)", "Microsoft"],
+      correcta: 1
+    },
+    {
+      id: 40,
+      dificultad: "medio",
+      tema: "Ventajas",
+      enunciado: "¿Qué problema de los sistemas de ficheros se reduce drásticamente con la integración de datos en una BD?",
+      opciones: ["La velocidad de impresión", "La redundancia e inconsistencia", "El uso de pantallas táctiles"],
+      correcta: 1
+    },
+    // --- NIVEL ALTO (41-60) ---
+    {
+      id: 41,
+      dificultad: "alto",
+      tema: "DBMS",
+      enunciado: "¿Qué nivel de la arquitectura de tres esquemas describe la estructura de almacenamiento físico?",
+      opciones: ["Esquema conceptual", "Esquema interno", "Esquema externo"],
+      correcta: 1
+    },
+    {
+      id: 42,
+      dificultad: "alto",
+      tema: "Definición",
+      enunciado: "¿Cómo se llama la capacidad de modificar el esquema físico sin alterar el esquema lógico?",
+      opciones: ["Independencia lógica de datos", "Independencia física de datos", "Abstracción jerárquica"],
+      correcta: 1
+    },
+    {
+      id: 43,
+      dificultad: "alto",
+      tema: "Historia",
+      enunciado: "¿Qué grupo definió las especificaciones estándar para sistemas de red en 1971?",
+      opciones: ["ANSI", "CODASYL DBTG", "IEEE"],
+      correcta: 1
+    },
+    {
+      id: 44,
+      dificultad: "alto",
+      tema: "DBMS",
+      enunciado: "En la arquitectura cliente-servidor de un SGBD, ¿qué función suele realizar el cliente?",
+      opciones: ["Almacenamiento de metadatos", "Interfaz de usuario y envío de consultas", "Control de concurrencia"],
+      correcta: 1
+    },
+    {
+      id: 45,
+      dificultad: "alto",
+      tema: "Definición",
+      enunciado: "¿Qué diferencia al 'estado' de la base de datos del 'esquema'?",
+      opciones: ["No hay diferencia", "El esquema es la definición y el estado son los datos en un momento dado", "El estado es el diseño y el esquema la implementación"],
+      correcta: 1
+    },
+    {
+      id: 46,
+      dificultad: "alto",
+      tema: "Tipos",
+      enunciado: "¿Qué caracteriza a un SGBD 'federado' o multibase de datos?",
+      opciones: ["Usa un solo computador central", "Accede de forma unificada a múltiples BD autónomas preexistentes", "Solo acepta datos de texto"],
+      correcta: 1
+    },
+    {
+      id: 47,
+      dificultad: "alto",
+      tema: "Historia",
+      enunciado: "¿Cuál era el principal inconveniente de los primeros sistemas jerárquicos y de red?",
+      opciones: ["Uso excesivo de SQL", "Mezcla de relaciones conceptuales con el almacenamiento físico", "No permitían usuarios múltiples"],
+      correcta: 1
+    },
+    {
+      id: 48,
+      dificultad: "alto",
+      tema: "DBMS",
+      enunciado: "¿Qué módulo del SGBD es responsable de elegir un plan eficiente para ejecutar una petición?",
+      opciones: ["Compilador DDL", "Optimizador de consultas", "Administrador de búferes"],
+      correcta: 1
+    },
+    {
+      id: 49,
+      dificultad: "alto",
+      tema: "Ventajas",
+      enunciado: "¿Qué beneficio aporta el concepto de 'independencia programa-datos'?",
+      opciones: ["Permite que los datos sean volátiles", "Los programas no cambian si se altera la estructura de los datos", "Elimina la necesidad de usar un SGBD"],
+      correcta: 1
+    },
+    {
+      id: 50,
+      dificultad: "alto",
+      tema: "Definición",
+      enunciado: "¿Cuál es la función del catálogo en un SGBD de propósito general?",
+      opciones: ["Listar los clientes del SGBD", "Permitir que el software funcione con cualquier BD específica", "Guardar las contraseñas de Windows"],
+      correcta: 1
+    },
+    {
+      id: 51,
+      dificultad: "alto",
+      tema: "Tipos",
+      enunciado: "¿Qué problema intentan resolver las bases de datos de objetos (ODBMS)?",
+      opciones: ["La lentitud de los terminales", "La incapacidad del modelo relacional de manejar datos complejos", "La falta de cables de red"],
+      correcta: 1
+    },
+    {
+      id: 52,
+      dificultad: "alto",
+      tema: "DBMS",
+      enunciado: "¿Qué comando SQL se utiliza para conceder privilegios a los usuarios?",
+      opciones: ["SELECT", "GRANT", "ALTER"],
+      correcta: 1
+    },
+    {
+      id: 53,
+      dificultad: "alto",
+      tema: "Tipos",
+      enunciado: "¿Qué diferencia principal hay entre OLTP y un Data Warehouse?",
+      opciones: ["OLTP es para análisis histórico", "OLTP es transaccional y el Warehouse es para toma de decisiones", "El Warehouse es más volátil"],
+      correcta: 1
+    },
+    {
+      id: 54,
+      dificultad: "alto",
+      tema: "Historia",
+      enunciado: "¿Qué sistema hito de los años 60 gestionaba reservas de vuelos de American Airlines?",
+      opciones: ["System R", "SABRE", "IMS"],
+      correcta: 1
+    },
+    {
+      id: 55,
+      dificultad: "alto",
+      tema: "DBMS",
+      enunciado: "¿Qué lenguaje se usa específicamente para definir las vistas de usuario?",
+      opciones: ["SDL (Almacenamiento)", "VDL (Vistas)", "HTML"],
+      correcta: 1
+    },
+    {
+      id: 56,
+      dificultad: "alto",
+      tema: "Historia",
+      enunciado: "¿Quiénes idearon el sistema de consultas que daría origen a SQL en los laboratorios de IBM?",
+      opciones: ["Bill Gates y Steve Jobs", "Donald Chamberlin y Raymond Boyce", "E.F. Codd y Peter Chen"],
+      correcta: 1
+    },
+    {
+      id: 57,
+      dificultad: "alto",
+      tema: "Tipos",
+      enunciado: "¿Qué es una base de datos 'activa'?",
+      opciones: ["Una base de datos que nunca se apaga", "Un sistema que ejecuta acciones ante eventos mediante reglas", "Una base de datos solo para móviles"],
+      correcta: 1
+    },
+    {
+      id: 58,
+      dificultad: "alto",
+      tema: "Ventajas",
+      enunciado: "¿Cómo ayuda la 'abstracción de datos' al usuario final?",
+      opciones: ["Le obliga a aprender binario", "Le oculta los detalles complejos de almacenamiento físico", "Permite que use el SGBD sin contraseña"],
+      correcta: 1
+    },
+    {
+      id: 59,
+      dificultad: "alto",
+      tema: "Tipos",
+      enunciado: "¿Qué tecnología RAID mejora el rendimiento distribuyendo datos en varios discos?",
+      opciones: ["Duplicación", "Segmentación (striping)", "Indexación"],
+      correcta: 1
+    },
+    {
+      id: 60,
+      dificultad: "alto",
+      tema: "Historia",
+      enunciado: "En los 90, ¿qué influyó en la expansión exponencial de la industria de bases de datos?",
+      opciones: ["El uso de cintas magnéticas", "La llegada de Internet y la web", "La invención del censo"],
+      correcta: 1
+    }
+  ];
+
+  // ============================================================
+  // BANCO DE DESAFÍOS - MÓDULO 2: DISEÑO DE BASES DE DATOS
+  // ============================================================
+  const desafiosModulo2 = [
+    // --- NIVEL BAJO ---
+    {
+      id: 101,
+      dificultad: "bajo",
+      tema: "Diseño Conceptual",
+      enunciado: "¿Cuál es el objetivo principal de la etapa de diseño conceptual?",
+      opciones: ["Crear tablas en el SGBD", "Producir un esquema independiente de consideraciones físicas", "Definir los índices de búsqueda"],
+      correcta: 1
+    },
+    {
+      id: 102,
+      dificultad: "bajo",
+      tema: "MER",
+      enunciado: "¿Qué símbolo representa a una 'entidad' en un diagrama Entidad-Relación?",
+      opciones: ["Un rombo", "Un rectángulo", "Una elipse"],
+      correcta: 1
+    },
+    {
+      id: 103,
+      dificultad: "bajo",
+      tema: "MER",
+      enunciado: "En el modelo entidad-relación, ¿qué representa un óvalo o elipse?",
+      opciones: ["Una relación", "Un atributo", "Una entidad débil"],
+      correcta: 1
+    },
+    {
+      id: 104,
+      dificultad: "bajo",
+      tema: "MER",
+      enunciado: "¿Qué figura geométrica se utiliza para representar las relaciones entre entidades?",
+      opciones: ["Círculo", "Rectángulo", "Rombo"],
+      correcta: 2
+    },
+    {
+      id: 105,
+      dificultad: "bajo",
+      tema: "Diseño Lógico",
+      enunciado: "¿Qué regla de integridad establece que ningún atributo de la clave primaria puede ser nulo?",
+      opciones: ["Integridad referencial", "Integridad de entidades", "Integridad de dominio"],
+      correcta: 1
+    },
+    {
+      id: 106,
+      dificultad: "bajo",
+      tema: "MER",
+      enunciado: "¿Cómo se le llama a una entidad que no tiene atributos suficientes para formar una clave primaria?",
+      opciones: ["Entidad fuerte", "Entidad débil", "Entidad asociativa"],
+      correcta: 1
+    },
+    {
+      id: 107,
+      dificultad: "bajo",
+      tema: "Diseño Lógico",
+      enunciado: "¿Qué es una 'clave primaria' (Primary Key)?",
+      opciones: ["Un atributo que identifica de modo único cada fila", "Una referencia a otra tabla", "Un campo que permite valores nulos"],
+      correcta: 0
+    },
+    {
+      id: 108,
+      dificultad: "bajo",
+      tema: "Normalización",
+      enunciado: "¿Qué requisito debe cumplir una relación para estar en Primera Forma Normal (1FN)?",
+      opciones: ["No tener dependencias transitivas", "Que todos los valores de los dominios sean atómicos", "Que no existan claves foráneas"],
+      correcta: 1
+    },
+    {
+      id: 109,
+      dificultad: "bajo",
+      tema: "Diseño Físico",
+      enunciado: "¿Qué comando SQL se usa comúnmente para establecer un valor automático si el usuario no ingresa nada?",
+      opciones: ["CHECK", "DEFAULT", "UNIQUE"],
+      correcta: 1
+    },
+    {
+      id: 110,
+      dificultad: "bajo",
+      tema: "Diseño Conceptual",
+      enunciado: "¿Quién introdujo originalmente el modelo Entidad-Relación en 1976?",
+      opciones: ["Edgar Frank Codd", "Peter Chen", "Charles Bachman"],
+      correcta: 1
+    },
+    {
+      id: 111,
+      dificultad: "bajo",
+      tema: "Diseño Físico",
+      enunciado: "¿Cuál es el propósito de crear un 'índice' en una base de datos?",
+      opciones: ["Garantizar que no haya virus", "Proporcionar un acceso eficiente a los datos", "Borrar datos antiguos automáticamente"],
+      correcta: 1
+    },
+    {
+      id: 112,
+      dificultad: "bajo",
+      tema: "MER",
+      enunciado: "¿Qué indica una cardinalidad mínima de 0 en una relación?",
+      opciones: ["Participación obligatoria", "Participación opcional", "Que no hay ninguna relación"],
+      correcta: 1
+    },
+    {
+      id: 113,
+      dificultad: "bajo",
+      tema: "MER",
+      enunciado: "¿Cómo se representan los atributos en la notación estándar del modelo entidad-relación?",
+      opciones: ["Rectángulos", "Elipses", "Líneas punteadas"],
+      correcta: 1
+    },
+    {
+      id: 114,
+      dificultad: "bajo",
+      tema: "Diseño Lógico",
+      enunciado: "¿Qué es una 'clave foránea' (Foreign Key)?",
+      opciones: ["Un atributo que referencia la clave primaria de otra relación", "La clave principal de un servidor externo", "Un atributo que no se puede indexar"],
+      correcta: 0
+    },
+    {
+      id: 115,
+      dificultad: "bajo",
+      tema: "Diseño Físico",
+      enunciado: "¿Qué restricción SQL asegura que un valor cumpla una condición específica (ej. precio > 0)?",
+      opciones: ["NOT NULL", "CHECK", "PRIMARY KEY"],
+      correcta: 1
+    },
+    {
+      id: 116,
+      dificultad: "bajo",
+      tema: "Análisis de Requerimientos",
+      enunciado: "¿Qué fase del diseño de base de datos se encarga de recolectar las necesidades de los usuarios?",
+      opciones: ["Diseño Físico", "Normalización", "Recopilación y análisis de requisitos"],
+      correcta: 2
+    },
+    {
+      id: 117,
+      dificultad: "bajo",
+      tema: "Diseño Lógico",
+      enunciado: "¿Qué proceso consiste en transformar el MER en un conjunto de tablas y relaciones?",
+      opciones: ["Diseño Físico", "Diseño Conceptual", "Diseño Lógico"],
+      correcta: 2
+    },
+    {
+      id: 118,
+      dificultad: "bajo",
+      tema: "Normalización",
+      enunciado: "¿Qué forma normal se centra en eliminar los grupos repetitivos y asegurar la atomicidad?",
+      opciones: ["1FN", "2FN", "BCNF"],
+      correcta: 0
+    },
+    {
+      id: 119,
+      dificultad: "bajo",
+      tema: "MER",
+      enunciado: "¿Cómo se llama al número de conjuntos de entidades que participan en una relación?",
+      opciones: ["Cardinalidad", "Grado de la relación", "Dominio"],
+      correcta: 1
+    },
+    {
+      id: 120,
+      dificultad: "bajo",
+      tema: "Diseño Conceptual",
+      enunciado: "En un MER, ¿qué indica una línea que une una entidad con un atributo?",
+      opciones: ["Una jerarquía", "Una asociación o pertenencia", "Un proceso de borrado"],
+      correcta: 1
+    },
+    // --- NIVEL MEDIO (21-40) ---
+    {
+      id: 121,
+      dificultad: "medio",
+      tema: "Diseño Lógico",
+      enunciado: "Al transformar un MER al modelo relacional, ¿en qué se convierte una relación M:N?",
+      opciones: ["En una clave foránea en la tabla padre", "En una nueva relación (tabla) independiente", "Se ignora si no tiene atributos"],
+      correcta: 1
+    },
+    {
+      id: 122,
+      dificultad: "medio",
+      tema: "Normalización",
+      enunciado: "¿Qué condición es necesaria para que una tabla esté en Segunda Forma Normal (2NF)?",
+      opciones: ["Estar en 1FN y que los atributos no clave dependan de toda la clave primaria", "Tener al menos dos claves foráneas", "No tener ningún atributo nulo"],
+      correcta: 0
+    },
+    {
+      id: 123,
+      dificultad: "medio",
+      tema: "Normalización",
+      enunciado: "¿Qué se busca eliminar principalmente al alcanzar la Tercera Forma Normal (3FN)?",
+      opciones: ["Grupos repetidos", "Dependencias transitivas", "Claves primarias compuestas"],
+      correcta: 1
+    },
+    {
+      id: 124,
+      dificultad: "medio",
+      tema: "Diseño Lógico",
+      enunciado: "En una relación 1:N entre 'Departamento' y 'Empleado', ¿dónde se coloca usualmente la clave foránea?",
+      opciones: ["En la tabla 'Departamento'", "En la tabla 'Empleado' (lado N)", "En una nueva tabla intermedia"],
+      correcta: 1
+    },
+    {
+      id: 125,
+      dificultad: "medio",
+      tema: "Diseño Lógico",
+      enunciado: "¿Qué sucede con los atributos de una entidad débil al pasar al modelo relacional?",
+      opciones: ["Forman una tabla cuya clave primaria incluye la clave de la entidad fuerte", "Se pierden si la entidad fuerte desaparece", "Se convierten en atributos multivaluados"],
+      correcta: 0
+    },
+    {
+      id: 126,
+      dificultad: "medio",
+      tema: "MER",
+      enunciado: "¿Qué símbolo representa un atributo multivaluado en un diagrama Entidad-Relación?",
+      opciones: ["Un óvalo de línea punteada", "Un óvalo doble", "Un rectángulo doble"],
+      correcta: 1
+    },
+    {
+      id: 127,
+      dificultad: "medio",
+      tema: "Diseño Lógico",
+      enunciado: "¿Cuál es la diferencia entre una Superclave y una Clave Candidata?",
+      opciones: ["La Superclave es mínima", "La Clave Candidata es una superclave mínima", "No hay diferencia real"],
+      correcta: 1
+    },
+    {
+      id: 128,
+      dificultad: "medio",
+      tema: "Diseño Lógico",
+      enunciado: "¿Qué regla de integridad garantiza que no existan referencias a registros inexistentes?",
+      opciones: ["Integridad de entidades", "Integridad referencial", "Integridad de dominio"],
+      correcta: 1
+    },
+    {
+      id: 129,
+      dificultad: "medio",
+      tema: "MER",
+      enunciado: "En una relación binaria 1:1, si una entidad tiene participación total y la otra parcial, ¿cuál es la mejor opción de mapeo?",
+      opciones: ["FK en el lado de participación total", "FK en el lado de participación parcial", "Siempre crear una tabla intermedia"],
+      correcta: 0
+    },
+    {
+      id: 130,
+      dificultad: "medio",
+      tema: "Diseño Físico",
+      enunciado: "Dentro del diseño físico, ¿qué es un atributo NOT NULL?",
+      opciones: ["Un campo que solo acepta números", "Una restricción que prohíbe dejar el campo vacío", "Un atributo que se calcula automáticamente"],
+      correcta: 1
+    },
+    {
+      id: 131,
+      dificultad: "medio",
+      tema: "Normalización",
+      enunciado: "¿Cuándo se dice que existe una dependencia funcional completa?",
+      opciones: ["Cuando un atributo depende de una parte de la clave primaria", "Cuando un atributo depende de toda la clave primaria y no de una parte de ella", "Cuando dos tablas tienen el mismo nombre de columna"],
+      correcta: 1
+    },
+    {
+      id: 132,
+      dificultad: "medio",
+      tema: "Diseño Conceptual",
+      enunciado: "¿Qué es un 'atributo compuesto' en el modelo ER?",
+      opciones: ["Aquel que puede tener múltiples valores para una entidad", "Aquel que puede dividirse en sub-componentes más pequeños", "Un atributo que es clave foránea al mismo tiempo"],
+      correcta: 1
+    },
+    {
+      id: 133,
+      dificultad: "medio",
+      tema: "Diseño Lógico",
+      enunciado: "¿Cómo se debe mapear un 'atributo multivaluado' al modelo relacional?",
+      opciones: ["Como una columna adicional en la misma tabla", "Como una nueva relación vinculada mediante clave foránea", "Como una clave primaria compuesta"],
+      correcta: 1
+    },
+    {
+      id: 134,
+      dificultad: "medio",
+      tema: "MER",
+      enunciado: "¿Qué se representa con una línea doble conectando una entidad con una relación?",
+      opciones: ["Participación parcial", "Participación total (dependencia de existencia)", "Relación recursiva"],
+      correcta: 1
+    },
+    {
+      id: 135,
+      dificultad: "medio",
+      tema: "Análisis de Requerimientos",
+      enunciado: "¿Qué técnica se utiliza para identificar entidades a partir de las especificaciones de requisitos?",
+      opciones: ["Búsqueda de verbos", "Búsqueda de nombres o sintagmas nominales", "Dibujo aleatorio de rectángulos"],
+      correcta: 1
+    },
+    {
+      id: 136,
+      dificultad: "medio",
+      tema: "Diseño Físico",
+      enunciado: "¿Cuál de estas opciones es una característica del diseño físico?",
+      opciones: ["Es totalmente independiente del SGBD", "Define estructuras de almacenamiento y métodos de acceso", "Solo se enfoca en el diagrama de flujo de datos"],
+      correcta: 1
+    },
+    {
+      id: 137,
+      dificultad: "medio",
+      tema: "Diseño Lógico",
+      enunciado: "¿Cómo se denomina al proceso de refinar el diseño relacional para evitar redundancias?",
+      opciones: ["Indexación", "Desnormalización", "Normalización"],
+      correcta: 2
+    },
+    {
+      id: 138,
+      dificultad: "medio",
+      tema: "Normalización",
+      enunciado: "¿Qué es una dependencia transitiva?",
+      opciones: ["A -> B, B -> C, por lo tanto A -> C", "A -> B, donde B es parte de la clave A", "Cuando un atributo depende de sí mismo"],
+      correcta: 0
+    },
+    {
+      id: 139,
+      dificultad: "medio",
+      tema: "Diseño Físico",
+      enunciado: "¿Qué restricción SQL garantiza que todos los valores en una columna sean distintos?",
+      opciones: ["NOT NULL", "CHECK", "UNIQUE"],
+      correcta: 2
+    },
+    {
+      id: 140,
+      dificultad: "medio",
+      tema: "MER",
+      enunciado: "¿Qué es un 'atributo derivado'?",
+      opciones: ["Aquel cuyo valor se obtiene de otros atributos", "Un atributo que hereda de una superclase", "La clave foránea de una entidad débil"],
+      correcta: 0
+    },
+    // --- NIVEL ALTO (41-60) ---
+    {
+      id: 141,
+      dificultad: "alto",
+      tema: "Normalización",
+      enunciado: "¿Cuándo se requiere aplicar la Forma Normal de Boyce-Codd (BCNF)?",
+      opciones: ["Cuando hay claves candidatas superpuestas", "Cuando la 3FN no elimina todas las redundancias de determinantes que no son claves", "Siempre que se use SQL"],
+      correcta: 1
+    },
+    {
+      id: 142,
+      dificultad: "alto",
+      tema: "Diseño Físico",
+      enunciado: "¿Bajo qué circunstancia es recomendable aplicar la 'desnormalización'?",
+      opciones: ["Al iniciar cualquier diseño conceptual", "Para mejorar el rendimiento en consultas de solo lectura o análisis histórico", "Cuando no se conocen las claves primarias"],
+      correcta: 1
+    },
+    {
+      id: 143,
+      dificultad: "alto",
+      tema: "Diseño Lógico",
+      enunciado: "En el mapeo de generalizaciones, ¿qué implica la opción de 'Una sola relación para toda la jerarquía'?",
+      opciones: ["Crear una tabla con la unión de todos los atributos de superclase y subclases", "Crear tablas solo para las subclases", "Perder los atributos específicos de las subclases"],
+      correcta: 0
+    },
+    {
+      id: 144,
+      dificultad: "alto",
+      tema: "Normalización",
+      enunciado: "¿Cuál es el principal inconveniente de tener una base de datos altamente normalizada?",
+      opciones: ["Aumenta la redundancia de datos", "Penaliza la recuperación de datos debido al exceso de operaciones de combinación (JOIN)", "No permite el uso de claves foráneas"],
+      correcta: 1
+    },
+    {
+      id: 145,
+      dificultad: "alto",
+      tema: "MER",
+      enunciado: "¿Qué es la 'agregación' en el modelo ER mejorado?",
+      opciones: ["Sumar todos los valores de una columna", "Tratar una relación y sus entidades asociadas como una entidad de nivel superior", "Eliminar entidades duplicadas"],
+      correcta: 1
+    },
+    {
+      id: 146,
+      dificultad: "alto",
+      tema: "Diseño Lógico",
+      enunciado: "¿Cómo se representa una 'relación recursiva' (unaria) en el modelo relacional?",
+      opciones: ["Mediante una clave foránea que referencia la clave primaria de la misma tabla", "Siempre requiere una tabla intermedia", "No se puede representar en el modelo relacional"],
+      correcta: 0
+    },
+    {
+      id: 147,
+      dificultad: "alto",
+      tema: "Normalización",
+      enunciado: "¿Qué son los Axiomas de Armstrong?",
+      opciones: ["Reglas para encriptar la base de datos", "Reglas de inferencia para dependencias funcionales", "Leyes para el borrado en cascada"],
+      correcta: 1
+    },
+    {
+      id: 148,
+      dificultad: "alto",
+      tema: "Diseño Lógico",
+      enunciado: "En un mapeo de 'especialización total', ¿qué restricción es fundamental?",
+      opciones: ["Cada instancia de la superclase debe pertenecer al menos a una subclase", "No puede haber claves primarias", "Las subclases deben tener nombres iguales"],
+      correcta: 0
+    },
+    {
+      id: 149,
+      dificultad: "alto",
+      tema: "Diseño Físico",
+      enunciado: "¿Qué sucede si se viola la integridad referencial durante un borrado y no hay reglas activas?",
+      opciones: ["El SGBD borra todos los datos relacionados automáticamente", "El SGBD rechaza la operación por defecto", "La base de datos se corrompe inmediatamente"],
+      correcta: 1
+    },
+    {
+      id: 150,
+      dificultad: "alto",
+      tema: "Diseño Lógico",
+      enunciado: "¿Qué es una 'entidad asociativa' o tipo de relación n-aria?",
+      opciones: ["Una relación que involucra a más de dos conjuntos de entidades", "Un atributo que se asocia con dos tablas", "Un tipo de índice complejo"],
+      correcta: 0
+    },
+    {
+      id: 151,
+      dificultad: "alto",
+      tema: "Normalización",
+      enunciado: "¿Cuál es la principal ventaja de la BCNF sobre la 3FN?",
+      opciones: ["Es más fácil de programar", "Es más estricta y elimina anomalías que la 3FN no puede detectar", "Requiere menos espacio de disco"],
+      correcta: 1
+    },
+    {
+      id: 152,
+      dificultad: "alto",
+      tema: "Diseño Físico",
+      enunciado: "¿Qué factor influye más en la decisión de crear un índice secundario?",
+      opciones: ["La frecuencia de las consultas sobre ese atributo frente al costo de actualización", "El color de la interfaz del usuario", "El nombre de la tabla"],
+      correcta: 0
+    },
+    {
+      id: 153,
+      dificultad: "alto",
+      tema: "MER",
+      enunciado: "¿Qué representa la especialización 'disjunta' en EER?",
+      opciones: ["Una entidad puede pertenecer a varias subclases a la vez", "Una entidad puede pertenecer a lo sumo a una de las subclases", "La superclase no tiene atributos"],
+      correcta: 1
+    },
+    {
+      id: 154,
+      dificultad: "alto",
+      tema: "Diseño Lógico",
+      enunciado: "Al transformar un MER, ¿cuándo se recomienda usar la 'metodología de la relación mezclada' para relaciones 1:1?",
+      opciones: ["Cuando ambas entidades tienen participación total", "Cuando hay muchos atributos multivaluados", "Solo si el SGBD es NoSQL"],
+      correcta: 0
+    },
+    {
+      id: 155,
+      dificultad: "alto",
+      tema: "Normalización",
+      enunciado: "¿Qué garantiza el 'teorema de la descomposición sin pérdida'?",
+      opciones: ["Que al reunir las tablas descompuestas se recupera exactamente la relación original", "Que no se pueden borrar registros", "Que el disco duro no fallará"],
+      correcta: 0
+    },
+    {
+      id: 156,
+      dificultad: "alto",
+      tema: "Normalización",
+      enunciado: "En la teoría de normalización, ¿qué significa que una dependencia sea trivial?",
+      opciones: ["Que el determinante es la clave", "Que el atributo dependiente es un subconjunto del determinante (X -> Y, donde Y ⊆ X)", "Que no tiene importancia para el diseño"],
+      correcta: 1
+    },
+    {
+      id: 157,
+      dificultad: "alto",
+      tema: "Diseño Físico",
+      enunciado: "¿Qué política de mantenimiento de integridad referencial pone a NULL la clave ajena si se borra el padre?",
+      opciones: ["CASCADE", "SET NULL", "RESTRICT"],
+      correcta: 1
+    },
+    {
+      id: 158,
+      dificultad: "alto",
+      tema: "MER",
+      enunciado: "¿Qué es un 'minimundo' en el contexto de diseño de bases de datos?",
+      opciones: ["Una base de datos pequeña", "La parte del mundo real que es de interés para la base de datos", "Un modelo a escala del servidor"],
+      correcta: 1
+    },
+    {
+      id: 159,
+      dificultad: "alto",
+      tema: "Diseño Lógico",
+      enunciado: "¿Qué ocurre en una relación M:N:P (ternaria) al pasarla al modelo relacional?",
+      opciones: ["Se crea una tabla cuya PK es la combinación de las tres claves de las entidades", "Se ignora una de las entidades para simplificar", "Se crean tres claves foráneas en cada tabla original"],
+      correcta: 0
+    },
+    {
+      id: 160,
+      dificultad: "alto",
+      tema: "Diseño Físico",
+      enunciado: "¿Qué parámetro de diseño físico afecta directamente el número de registros por bloque de disco?",
+      opciones: ["El color de los rectángulos", "El tamaño de las páginas o buffers", "El nombre de los atributos"],
+      correcta: 1
+    }
+  ];
+
+  // ============================================================
+  // BANCO DE DESAFÍOS - MÓDULO 3: ADMINISTRACIÓN DE BASES DE DATOS
+  // ============================================================
+  const desafiosModulo3 = [
+    // --- NIVEL BAJO ---
+    {
+      id: 201,
+      dificultad: "bajo",
+      tema: "Gestión de Usuarios",
+      enunciado: "¿Quién es el responsable principal de coordinar, supervisar y monitorizar el uso de los recursos en un entorno de base de datos?",
+      opciones: ["El Diseñador de la base de datos", "El Administrador de la base de datos (DBA)", "El Usuario final"],
+      correcta: 1
+    },
+    {
+      id: 202,
+      dificultad: "bajo",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Cómo se denomina el proceso de asegurar que un usuario es en realidad quien dice ser?",
+      opciones: ["Autorización", "Autenticación", "Auditoría"],
+      correcta: 1
+    },
+    {
+      id: 203,
+      dificultad: "bajo",
+      tema: "Control de Acceso",
+      enunciado: "¿Cuál es el comando SQL utilizado para otorgar privilegios específicos a una cuenta de usuario?",
+      opciones: ["GRANT", "REVOKE", "GIVE"],
+      correcta: 0
+    },
+    {
+      id: 204,
+      dificultad: "bajo",
+      tema: "Copias de Seguridad",
+      enunciado: "¿Qué tipo de copia de seguridad registra únicamente los cambios realizados desde la última copia de respaldo?",
+      opciones: ["Copia completa", "Copia diferencial", "Copia incremental"],
+      correcta: 2
+    },
+    {
+      id: 205,
+      dificultad: "bajo",
+      tema: "Gestión de Usuarios",
+      enunciado: "En un sistema multiusuario, ¿qué mecanismo permite que cada usuario vea solo una parte de la base de datos ajustada a sus necesidades?",
+      opciones: ["Vistas", "Tablas físicas", "Índices"],
+      correcta: 0
+    },
+    {
+      id: 206,
+      dificultad: "bajo",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Qué comando SQL se utiliza para retirar privilegios previamente concedidos a un usuario?",
+      opciones: ["REMOVE", "DELETE", "REVOKE"],
+      correcta: 2
+    },
+    {
+      id: 207,
+      dificultad: "bajo",
+      tema: "Recuperación",
+      enunciado: "¿Cómo se llama el archivo donde el SGBD anota todas las operaciones de escritura para reconstruir la BD en caso de incidente?",
+      opciones: ["Catálogo", "Diario o log (registro del sistema)", "Diccionario de datos"],
+      correcta: 1
+    },
+    {
+      id: 208,
+      dificultad: "bajo",
+      tema: "Control de Acceso",
+      enunciado: "¿Qué tipo de privilegio permite a un usuario leer datos pero no modificarlos?",
+      opciones: ["Privilegio de actualización", "Privilegio de inserción", "Privilegio de selección (SELECT)"],
+      correcta: 2
+    },
+    {
+      id: 209,
+      dificultad: "bajo",
+      tema: "Roles",
+      enunciado: "¿Qué concepto facilita la administración al asignar un conjunto de permisos a una descripción de trabajo en lugar de a cada persona individualmente?",
+      opciones: ["Cuenta de superusuario", "Rol", "Atributo derivado"],
+      correcta: 1
+    },
+    {
+      id: 210,
+      dificultad: "bajo",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Cuál es el objetivo de usar técnicas de encriptación en las bases de datos?",
+      opciones: ["Acelerar las consultas SQL", "Proteger datos confidenciales mediante códigos secretos", "Reducir la redundancia de datos"],
+      correcta: 1
+    },
+    {
+      id: 211,
+      dificultad: "bajo",
+      tema: "Gestión de Usuarios",
+      enunciado: "¿Cómo se denomina comúnmente a la cuenta del DBA que posee privilegios totales sobre el sistema?",
+      opciones: ["Cuenta anónima", "Cuenta guest", "Cuenta de sistema o superusuario (root)"],
+      correcta: 2
+    },
+    {
+      id: 212,
+      dificultad: "bajo",
+      tema: "Copias de Seguridad",
+      enunciado: "¿Cuál es el medio de almacenamiento más común para archivar copias de seguridad de bases de datos muy grandes debido a su bajo coste?",
+      opciones: ["Discos de estado sólido", "Cintas magnéticas", "Memoria caché"],
+      correcta: 1
+    },
+    {
+      id: 213,
+      dificultad: "bajo",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Qué nombre recibe el registro histórico de todas las modificaciones hechas en la base de datos por los usuarios?",
+      opciones: ["Traza de auditoría", "Esquema conceptual", "Punto de control"],
+      correcta: 0
+    },
+    {
+      id: 214,
+      dificultad: "bajo",
+      tema: "Recuperación",
+      enunciado: "¿Qué propiedad de las transacciones garantiza que, ante un fallo, se completen todas las operaciones o no se aplique ninguna?",
+      opciones: ["Atomicidad", "Durabilidad", "Consistencia"],
+      correcta: 0
+    },
+    {
+      id: 215,
+      dificultad: "bajo",
+      tema: "Control de Acceso",
+      enunciado: "¿Qué palabra clave en un comando GRANT permite que un usuario otorgue a otros los privilegios que él recibió?",
+      opciones: ["WITH GRANT OPTION", "ALLOW PROPAGATION", "CASCADE PRIVILEGES"],
+      correcta: 0
+    },
+    {
+      id: 216,
+      dificultad: "bajo",
+      tema: "Gestión de Usuarios",
+      enunciado: "¿Qué información mínima debe proporcionar un usuario para conectarse al servidor de base de datos?",
+      opciones: ["Nombre de usuario y contraseña", "Solo el nombre de la base de datos", "Número de serie del equipo"],
+      correcta: 0
+    },
+    {
+      id: 217,
+      dificultad: "bajo",
+      tema: "Privacidad",
+      enunciado: "¿Qué aspecto legal exige la protección de la confidencialidad de los datos personales almacenados en sistemas informáticos?",
+      opciones: ["Ley de Normalización", "Legislación sobre privacidad e intimidad", "Regla de integridad referencial"],
+      correcta: 1
+    },
+    {
+      id: 218,
+      dificultad: "bajo",
+      tema: "Control de Acceso",
+      enunciado: "¿Qué tipo de privilegio permite eliminar filas de una tabla?",
+      opciones: ["DROP", "DELETE", "REMOVE"],
+      correcta: 1
+    },
+    {
+      id: 219,
+      dificultad: "bajo",
+      tema: "Recuperación",
+      enunciado: "¿Qué acción realiza el SGBD durante un 'punto de control' (checkpoint)?",
+      opciones: ["Borra todos los usuarios", "Escribe en disco todos los búferes modificados", "Cambia las contraseñas"],
+      correcta: 1
+    },
+    {
+      id: 220,
+      dificultad: "bajo",
+      tema: "Gestión de Usuarios",
+      enunciado: "¿A qué nivel puede un DBA asignar privilegios en un SGBD relacional?",
+      opciones: ["Solo a nivel de base de datos completa", "Solo a nivel de hardware", "A nivel de cuenta y a nivel de relación (tablas/vistas)"],
+      correcta: 2
+    },
+    // --- NIVEL MEDIO ---
+    {
+      id: 221,
+      dificultad: "medio",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿En qué consiste el Control de Acceso Discrecional (DAC)?",
+      opciones: ["Clasificar datos en niveles como 'Secreto' o 'Alto Secreto'", "Conceder y revocar privilegios a usuarios específicos sobre objetos", "Usar hardware biométrico obligatoriamente"],
+      correcta: 1
+    },
+    {
+      id: 222,
+      dificultad: "medio",
+      tema: "Recuperación",
+      enunciado: "¿Qué técnica de recuperación no actualiza físicamente la base de datos hasta que la transacción confirma (commit)?",
+      opciones: ["Actualización inmediata", "Actualización diferida", "Paginación en sombra"],
+      correcta: 1
+    },
+    {
+      id: 223,
+      dificultad: "medio",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Qué sistema de autenticación envía una cadena al usuario para que la cifre con su clave y la devuelva?",
+      opciones: ["Cifrado por bloques", "Respuesta por desafío (challenge-response)", "Autenticación biométrica simple"],
+      correcta: 1
+    },
+    {
+      id: 224,
+      dificultad: "medio",
+      tema: "Control de Acceso",
+      enunciado: "Si se usa REVOKE con la opción CASCADE, ¿qué sucede con los privilegios que el usuario desautorizado había otorgado a otros?",
+      opciones: ["Se mantienen intactos", "Se revocan automáticamente de forma encadenada", "Quedan en espera de aprobación del DBA"],
+      correcta: 1
+    },
+    {
+      id: 225,
+      dificultad: "medio",
+      tema: "Gestión de Usuarios",
+      enunciado: "¿Qué privilegio de SQL permite a un usuario crear restricciones de clave foránea que referencien otra tabla?",
+      opciones: ["USAGE", "REFERENCES", "LINK"],
+      correcta: 1
+    },
+    {
+      id: 226,
+      dificultad: "medio",
+      tema: "Copias de Seguridad",
+      enunciado: "¿Por qué es costumbre hacer copias del registro del sistema (log) con más frecuencia que de la base de datos completa?",
+      opciones: ["Porque el log es más grande", "Porque es más pequeño y permite recuperar transacciones recientes tras un fallo de disco", "Porque el log no es volátil"],
+      correcta: 1
+    },
+    {
+      id: 227,
+      dificultad: "medio",
+      tema: "Recuperación",
+      enunciado: "En la recuperación de transacciones, ¿qué significa la operación 'REHACER' (REDO)?",
+      opciones: ["Deshacer los cambios de una transacción fallida", "Volver a aplicar las actualizaciones de una transacción confirmada desde el registro", "Eliminar la transacción del catálogo"],
+      correcta: 1
+    },
+    {
+      id: 228,
+      dificultad: "medio",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Qué medida de control previene que la información se deduzca a partir de consultas estadísticas sobre grupos?",
+      opciones: ["Control de flujo", "Control de inferencias", "Cifrado de clave pública"],
+      correcta: 1
+    },
+    {
+      id: 229,
+      dificultad: "medio",
+      tema: "Control de Acceso",
+      enunciado: "En SQL, ¿cuál es el privilegio que autoriza a un usuario a ejecutar funciones o procedimientos almacenados?",
+      opciones: ["USAGE", "SELECT", "EXECUTE"],
+      correcta: 2
+    },
+    {
+      id: 230,
+      dificultad: "medio",
+      tema: "Recuperación",
+      enunciado: "¿Qué tecnología RAID duplica los datos en dos discos distintos (espejo) para mejorar la fiabilidad?",
+      opciones: ["RAID nivel 0", "RAID nivel 1", "RAID nivel 5"],
+      correcta: 1
+    },
+    {
+      id: 231,
+      dificultad: "medio",
+      tema: "Gestión de Usuarios",
+      enunciado: "¿Qué sucede si se otorga un privilegio a la cuenta especial 'PUBLIC'?",
+      opciones: ["Se otorga a todos los usuarios actuales y futuros del sistema", "Solo lo recibe el DBA", "La base de datos se vuelve de solo lectura"],
+      correcta: 0
+    },
+    {
+      id: 232,
+      dificultad: "medio",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Cómo se llama la propiedad que garantiza que los cambios de una transacción confirmada persistan incluso tras un fallo del sistema?",
+      opciones: ["Durabilidad", "Aislamiento", "Consistencia"],
+      correcta: 0
+    },
+    {
+      id: 233,
+      dificultad: "medio",
+      tema: "Recuperación",
+      enunciado: "¿Qué es una 'anulación en cascada'?",
+      opciones: ["Borrar tablas en orden alfabético", "Anular transacciones que leyeron datos escritos por otra transacción previamente anulada", "Reiniciar el servidor tres veces"],
+      correcta: 1
+    },
+    {
+      id: 234,
+      dificultad: "medio",
+      tema: "Copias de Seguridad",
+      enunciado: "¿Cuál es el inconveniente principal de la copia de seguridad incremental frente a la completa?",
+      opciones: ["Ocupa más espacio", "Es más lenta de realizar", "El proceso de restauración es más complejo"],
+      correcta: 2
+    },
+    {
+      id: 235,
+      dificultad: "medio",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Qué se requiere para que un usuario pueda comprobar que la clave pública de un sitio Web es auténtica?",
+      opciones: ["Un firewall personal", "Un certificado digital firmado por una autoridad de confianza", "Una VPN"],
+      correcta: 1
+    },
+    {
+      id: 236,
+      dificultad: "medio",
+      tema: "Control de Acceso",
+      enunciado: "¿Qué comando SQL permite crear un rol en un sistema compatible con SQL:1999?",
+      opciones: ["ADD ROLE", "CREATE ROLE", "NEW POSITION"],
+      correcta: 1
+    },
+    {
+      id: 237,
+      dificultad: "medio",
+      tema: "Recuperación",
+      enunciado: "En un protocolo WAL (registro antes de la escritura), ¿qué debe grabarse en disco antes de aplicar cambios a la BD física?",
+      opciones: ["La nueva contraseña del DBA", "Las entradas del registro (log) correspondientes al cambio", "Un archivo de texto plano"],
+      correcta: 1
+    },
+    {
+      id: 238,
+      dificultad: "medio",
+      tema: "Gestión de Usuarios",
+      enunciado: "¿Qué información sobre los usuarios se guarda habitualmente en el catálogo o diccionario de datos?",
+      opciones: ["Sus fotos personales", "Sus nombres, responsabilidades y permisos de acceso", "Solo su historial de navegación web"],
+      correcta: 1
+    },
+    {
+      id: 239,
+      dificultad: "medio",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Qué canal oculto permite deducir información basándose en el tiempo de respuesta del sistema?",
+      opciones: ["Canal de almacenamiento", "Canal de temporización", "Canal de red"],
+      correcta: 1
+    },
+    {
+      id: 240,
+      dificultad: "medio",
+      tema: "Roles",
+      enunciado: "Si un rol 'Director' tiene asignado el rol 'Cajero', ¿qué privilegios posee el 'Director'?",
+      opciones: ["Solo los de Director", "Solo los de Cajero", "Los suyos propios más todos los heredados de Cajero"],
+      correcta: 2
+    },
+    // --- NIVEL ALTO ---
+    {
+      id: 241,
+      dificultad: "alto",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Qué modelo de seguridad clasifica sujetos y objetos en niveles como TS (Top Secret) y S (Secret)?",
+      opciones: ["Control de Acceso Discrecional (DAC)", "Control de Acceso Obligatorio (MAC)", "Control basado en el nombre"],
+      correcta: 1
+    },
+    {
+      id: 242,
+      dificultad: "alto",
+      tema: "Recuperación",
+      enunciado: "¿Cuáles son las tres fases del algoritmo de recuperación ARIES?",
+      opciones: ["Inicio, Proceso, Fin", "Análisis, REHACER y DESHACER", "Copia, Pegado, Verificación"],
+      correcta: 1
+    },
+    {
+      id: 243,
+      dificultad: "alto",
+      tema: "Recuperación",
+      enunciado: "¿Qué implica una política de administración de búferes tipo 'ROBAR' (steal)?",
+      opciones: ["El SGBD puede escribir una página modificada en disco antes de que la transacción confirme", "El SGBD nunca escribe en disco", "Los usuarios pueden acceder a datos de otros sin permiso"],
+      correcta: 0
+    },
+    {
+      id: 244,
+      dificultad: "alto",
+      tema: "Seguridad y Privacidad",
+      enunciado: "En el control de acceso obligatorio, ¿qué prohíbe la 'propiedad-star' (*-property)?",
+      opciones: ["Que un sujeto escriba en un objeto de nivel de seguridad inferior (no escribir hacia abajo)", "Que un sujeto lea datos superiores", "Que existan claves foráneas"],
+      correcta: 0
+    },
+    {
+      id: 245,
+      dificultad: "alto",
+      tema: "Recuperación",
+      enunciado: "¿Qué técnica de recuperación utiliza un directorio sombra para evitar el uso de un log en sistemas monousuario?",
+      opciones: ["Shadowing (paginación en sombra)", "Actualización inmediata", "Checkpoints difusos"],
+      correcta: 0
+    },
+    {
+      id: 246,
+      dificultad: "alto",
+      tema: "Gestión de Usuarios",
+      enunciado: "En SQL:1999, ¿quién es el único autorizado para ejecutar modificaciones en el esquema (como DROP TABLE)?",
+      opciones: ["Cualquier usuario con SELECT", "Solo el propietario del esquema", "El servidor de aplicaciones"],
+      correcta: 1
+    },
+    {
+      id: 247,
+      dificultad: "alto",
+      tema: "Privacidad",
+      enunciado: "¿Qué técnica permite mitigar riesgos de privacidad al inyectar ruido o eliminar identidades en grandes almacenes de datos?",
+      opciones: ["Normalización", "Anonimización o distorsión de datos", "Indexación densa"],
+      correcta: 1
+    },
+    {
+      id: 248,
+      dificultad: "alto",
+      tema: "Control de Acceso",
+      enunciado: "¿Cuál es el propósito del mecanismo 'Virtual Private Database' (VPD) u 'Oracle Label Security'?",
+      opciones: ["Hacer copias de seguridad en la nube", "Proporcionar control de acceso a nivel de filas individuales mediante predicados dinámicos", "Eliminar la necesidad de contraseñas"],
+      correcta: 1
+    },
+    {
+      id: 249,
+      dificultad: "alto",
+      tema: "Recuperación",
+      enunciado: "En sistemas multibase de datos, ¿qué protocolo garantiza la atomicidad de una transacción que accede a varios sitios?",
+      opciones: ["Protocolo de confirmación en dos fases (2PC)", "Protocolo de bloqueo en una fase", "Protocolo de acceso aleatorio"],
+      correcta: 0
+    },
+    {
+      id: 250,
+      dificultad: "alto",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Qué es la 'poliinstanciación' en el contexto de bases de datos multinivel?",
+      opciones: ["Tener muchas bases de datos en un solo disco", "Existencia de múltiples versiones de la misma tupla con diferentes clasificaciones de seguridad", "Instalar el SGBD en varios servidores"],
+      correcta: 1
+    },
+    {
+      id: 251,
+      dificultad: "alto",
+      tema: "Recuperación",
+      enunciado: "¿Qué significa que un proceso de recuperación sea 'idempotent'?",
+      opciones: ["Que solo puede ejecutarse una vez al año", "Que ejecutarlo varias veces produce el mismo resultado que ejecutarlo una sola vez", "Que requiere mucha potencia de CPU"],
+      correcta: 1
+    },
+    {
+      id: 252,
+      dificultad: "alto",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Qué medida de seguridad se encarga de que la información no fluya de clases de alta seguridad a clases bajas?",
+      opciones: ["Control de flujo", "Control de redundancia", "Control de concurrencia"],
+      correcta: 0
+    },
+    {
+      id: 253,
+      dificultad: "alto",
+      tema: "Gestión de Usuarios",
+      enunciado: "En un grafo de autorización, ¿cuál es la condición necesaria para que un usuario conserve un privilegio?",
+      opciones: ["Que tenga al menos un amigo con el privilegio", "Que exista un camino desde la raíz (DBA) hasta el nodo del usuario", "Que haya pagado la licencia"],
+      correcta: 1
+    },
+    {
+      id: 254,
+      dificultad: "alto",
+      tema: "Recuperación",
+      enunciado: "¿Qué información contiene la 'tabla de páginas sucias' en el algoritmo ARIES?",
+      opciones: ["Lista de usuarios bloqueados", "ID de página y el LSN de la actualización más temprana en memoria para esa página", "Lista de tablas sin claves primarias"],
+      correcta: 1
+    },
+    {
+      id: 255,
+      dificultad: "alto",
+      tema: "Control de Acceso",
+      enunciado: "¿Qué sucede al ejecutar REVOKE GRANT OPTION FOR [privilegio]?",
+      opciones: ["Se elimina el privilegio de acceso", "Se elimina solo el derecho del usuario a otorgar ese privilegio a otros", "Se borra la cuenta del usuario"],
+      correcta: 1
+    },
+    {
+      id: 256,
+      dificultad: "alto",
+      tema: "Seguridad y Privacidad",
+      enunciado: "¿Cuál es el riesgo principal de implementar la seguridad únicamente en el servidor de aplicaciones?",
+      opciones: ["Es demasiado rápido", "Agujeros de seguridad si algún programa olvida verificar la autorización", "Uso excesivo de memoria RAM"],
+      correcta: 1
+    },
+    {
+      id: 257,
+      dificultad: "alto",
+      tema: "Recuperación",
+      enunciado: "¿Qué nivel de RAID utiliza paridad distribuida con bloques interpolados para ofrecer tolerancia a fallos y alto rendimiento?",
+      opciones: ["RAID 1", "RAID 2", "RAID 5"],
+      correcta: 2
+    },
+    {
+      id: 258,
+      dificultad: "alto",
+      tema: "Gestión de Usuarios",
+      enunciado: "En PostgreSQL, ¿quién es el usuario inicial con capacidad de crear otras bases de datos y usuarios?",
+      opciones: ["El usuario 'admin'", "El usuario 'postgres'", "El usuario 'system'"],
+      correcta: 1
+    },
+    {
+      id: 259,
+      dificultad: "alto",
+      tema: "Privacidad",
+      enunciado: "Para proteger la intimidad de los ancianos en datos agregados, ¿qué medida se sugiere?",
+      opciones: ["Borrar sus registros", "Proporcionar un rango (ej. '80 o más años') en lugar de la edad real", "Usar nombres falsos"],
+      correcta: 1
+    },
+    {
+      id: 260,
+      dificultad: "alto",
+      tema: "Recuperación",
+      enunciado: "Si una transacción T se anula y el sistema fuerza la anulación de S porque leyó de T, ¿qué tipo de planificación se está evitando en la práctica?",
+      opciones: ["Planificaciones estrictas", "Planificaciones con anulaciones en cascada", "Planificaciones seriales"],
+      correcta: 1
+    }
+  ];
+
+  // ============================================================
+  // BANCO DE DESAFÍOS - MÓDULO 4: OPTIMIZACIÓN DE BASES DE DATOS
+  // ============================================================
+  const desafiosModulo4 = [
+    // --- NIVEL BAJO ---
+    {
+      id: 301,
+      dificultad: "bajo",
+      tema: "Optimización de Consultas",
+      enunciado: "¿Cuál es el objetivo principal de la optimización de consultas en un SGBD?",
+      opciones: ["Hallar la estrategia de ejecución de menor coste", "Eliminar todos los datos duplicados", "Aumentar el tamaño de la base de datos"],
+      correcta: 0
+    },
+    {
+      id: 302,
+      dificultad: "bajo",
+      tema: "Índices",
+      enunciado: "¿Qué estructura de acceso se utiliza para acelerar la búsqueda de registros sin leer toda la tabla?",
+      opciones: ["Esquema conceptual", "Índice", "Trigger"],
+      correcta: 1
+    },
+    {
+      id: 303,
+      dificultad: "bajo",
+      tema: "Vistas",
+      enunciado: "¿Cómo se denomina a una tabla que no existe físicamente pero se define mediante una consulta?",
+      opciones: ["Tabla base", "Vista", "Tabla temporal"],
+      correcta: 1
+    },
+    {
+      id: 304,
+      dificultad: "bajo",
+      tema: "Planes de Ejecución",
+      enunciado: "¿Qué módulo del SGBD es responsable de elegir un plan eficiente para cada consulta?",
+      opciones: ["Compilador DDL", "Optimizador de consultas", "Gestor de recuperación"],
+      correcta: 1
+    },
+    {
+      id: 305,
+      dificultad: "bajo",
+      tema: "Índices",
+      enunciado: "¿Cómo se llama el índice que determina el orden físico de los registros en un archivo?",
+      opciones: ["Índice secundario", "Índice con agrupación (clustered)", "Índice denso"],
+      correcta: 1
+    },
+    {
+      id: 306,
+      dificultad: "bajo",
+      tema: "Optimización SQL",
+      enunciado: "¿Cuál de estas sentencias se utiliza para recuperar datos en SQL y es objeto de optimización?",
+      opciones: ["CREATE", "SELECT", "DROP"],
+      correcta: 1
+    },
+    {
+      id: 307,
+      dificultad: "bajo",
+      tema: "Procedimientos Almacenados",
+      enunciado: "¿Cuál es una ventaja de los procedimientos almacenados?",
+      opciones: ["Aumentan el tráfico de red", "Reducen la duplicidad de esfuerzo y mejoran la modularidad", "Solo funcionan en bases de datos locales"],
+      correcta: 1
+    },
+    {
+      id: 308,
+      dificultad: "bajo",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué componente de hardware suele ser el principal cuello de botella en el rendimiento de una BD?",
+      opciones: ["La memoria RAM", "El disco duro (E/S)", "La tarjeta de red"],
+      correcta: 1
+    },
+    {
+      id: 309,
+      dificultad: "bajo",
+      tema: "Vistas Materializadas",
+      enunciado: "¿Qué diferencia a una vista materializada de una vista normal?",
+      opciones: ["No tiene nombre", "Su contenido se calcula y se almacena físicamente", "Solo se puede usar en Oracle"],
+      correcta: 1
+    },
+    {
+      id: 310,
+      dificultad: "bajo",
+      tema: "Denormalización",
+      enunciado: "¿Cuál es el propósito de la desnormalización?",
+      opciones: ["Aumentar la consistencia", "Mejorar el rendimiento de las consultas frecuentes", "Eliminar todas las tablas"],
+      correcta: 1
+    },
+    {
+      id: 311,
+      dificultad: "bajo",
+      tema: "Índices",
+      enunciado: "¿Qué tipo de índice contiene una entrada por cada registro del archivo de datos?",
+      opciones: ["Índice disperso", "Índice denso", "Índice de cilindro"],
+      correcta: 1
+    },
+    {
+      id: 312,
+      dificultad: "bajo",
+      tema: "Optimización SQL",
+      enunciado: "¿Qué comando se suele usar para ver cómo el gestor ejecutará una consulta (especialmente en MySQL/PostgreSQL)?",
+      opciones: ["VIEW", "EXPLAIN", "SHOW"],
+      correcta: 1
+    },
+    {
+      id: 313,
+      dificultad: "bajo",
+      tema: "Índices",
+      enunciado: "¿Qué ocurre con el rendimiento de las actualizaciones (INSERT/UPDATE) cuando hay muchos índices?",
+      opciones: ["Mejora significativamente", "Se ralentiza debido al mantenimiento de las estructuras", "No se ve afectado"],
+      correcta: 1
+    },
+    {
+      id: 314,
+      dificultad: "bajo",
+      tema: "Planes de Ejecución",
+      enunciado: "En un plan de ejecución, ¿qué representa un 'Full Table Scan'?",
+      opciones: ["Uso de un índice primario", "Lectura secuencial de todas las filas de la tabla", "Borrado completo de la tabla"],
+      correcta: 1
+    },
+    {
+      id: 315,
+      dificultad: "bajo",
+      tema: "Optimización de Consultas",
+      enunciado: "¿Qué lenguaje se usa como base interna para representar y optimizar consultas SQL?",
+      opciones: ["HTML", "Álgebra relacional", "Javascript"],
+      correcta: 1
+    },
+    {
+      id: 316,
+      dificultad: "bajo",
+      tema: "Particionamiento",
+      enunciado: "¿Qué técnica divide una tabla grande en partes más pequeñas y manejables?",
+      opciones: ["Normalización", "Particionamiento", "Encriptación"],
+      correcta: 1
+    },
+    {
+      id: 317,
+      dificultad: "bajo",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué es un 'Buffer' en el contexto de SGBD?",
+      opciones: ["Un virus informático", "Un área de memoria principal que mantiene partes de la BD", "Un cable de conexión"],
+      correcta: 1
+    },
+    {
+      id: 318,
+      dificultad: "bajo",
+      tema: "Vistas",
+      enunciado: "¿Qué permite ocultar la complejidad de las uniones (joins) al usuario final?",
+      opciones: ["Los metadatos", "Las vistas", "El diccionario de datos"],
+      correcta: 1
+    },
+    {
+      id: 319,
+      dificultad: "bajo",
+      tema: "Denormalización",
+      enunciado: "¿En qué etapa del diseño se suele considerar la desnormalización por rendimiento?",
+      opciones: ["Diseño conceptual", "Diseño físico o refinación", "Recolección de requisitos"],
+      correcta: 1
+    },
+    {
+      id: 320,
+      dificultad: "bajo",
+      tema: "Optimización SQL",
+      enunciado: "¿Qué operador SQL suele ser más eficiente que una subconsulta anidada en muchos casos?",
+      opciones: ["GROUP BY", "JOIN (concatenación)", "ORDER BY"],
+      correcta: 1
+    },
+    // --- NIVEL MEDIO ---
+    {
+      id: 321,
+      dificultad: "medio",
+      tema: "Optimización de Consultas",
+      enunciado: "¿Qué regla heurística es fundamental para reducir el tamaño de los resultados intermedios?",
+      opciones: ["Realizar los JOIN antes que los SELECT", "Realizar los SELECT y PROJECT lo antes posible", "Evitar el uso de índices"],
+      correcta: 1
+    },
+    {
+      id: 322,
+      dificultad: "medio",
+      tema: "Vistas Materializadas",
+      enunciado: "¿Cómo se llama el proceso de actualizar una vista materializada basándose solo en los cambios de las tablas base?",
+      opciones: ["Recálculo total", "Mantenimiento incremental de la vista", "Refresco aleatorio"],
+      correcta: 1
+    },
+    {
+      id: 323,
+      dificultad: "medio",
+      tema: "Optimización de Consultas",
+      enunciado: "¿En qué se basa la optimización por costes para elegir un plan?",
+      opciones: ["En la opinión del DBA", "En la estimación del uso de recursos (CPU, E/S, memoria)", "En el orden de llegada de las consultas"],
+      correcta: 1
+    },
+    {
+      id: 324,
+      dificultad: "medio",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué tecnología RAID duplica los datos en dos discos (mirroring) para mejorar la fiabilidad?",
+      opciones: ["RAID 0", "RAID 1", "RAID 5"],
+      correcta: 1
+    },
+    {
+      id: 325,
+      dificultad: "medio",
+      tema: "Índices",
+      enunciado: "¿Qué tipo de índice es ideal para columnas con baja cardinalidad (pocos valores distintos)?",
+      opciones: ["Árbol B+", "Índice de mapas de bits (bitmap)", "Índice principal"],
+      correcta: 1
+    },
+    {
+      id: 326,
+      dificultad: "medio",
+      tema: "Planes de Ejecución",
+      enunciado: "En un árbol de consulta, ¿hacia dónde se intentan 'bajar' las operaciones más restrictivas?",
+      opciones: ["Hacia la raíz", "Hacia las hojas (tablas base)", "Fuera del árbol"],
+      correcta: 1
+    },
+    {
+      id: 327,
+      dificultad: "medio",
+      tema: "Optimización de Consultas",
+      enunciado: "¿Qué información utiliza el optimizador para estimar la selectividad de un atributo?",
+      opciones: ["El esquema lógico", "Histogramas y estadísticas del catálogo", "El diario de transacciones"],
+      correcta: 1
+    },
+    {
+      id: 328,
+      dificultad: "medio",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué técnica permite procesar varias operaciones de una consulta simultáneamente sin archivos temporales?",
+      opciones: ["Materialización", "Encauzamiento (pipelining)", "Fragmentación"],
+      correcta: 1
+    },
+    {
+      id: 329,
+      dificultad: "medio",
+      tema: "Índices",
+      enunciado: "¿Cuál es la principal ventaja de los árboles B+ frente a otros índices?",
+      opciones: ["Solo permiten búsquedas de igualdad", "Se mantienen equilibrados y eficientes ante inserciones/borrados", "No ocupan espacio en disco"],
+      correcta: 1
+    },
+    {
+      id: 330,
+      dificultad: "medio",
+      tema: "Optimización SQL",
+      enunciado: "¿Qué efecto tiene el uso de funciones aritméticas (ej: SALARIO * 12) sobre una columna en la cláusula WHERE?",
+      opciones: ["Acelera la consulta", "Suele impedir que el optimizador utilice los índices de esa columna", "No tiene impacto"],
+      correcta: 1
+    },
+    {
+      id: 331,
+      dificultad: "medio",
+      tema: "Denormalización",
+      enunciado: "¿Qué tipo de anomalía es un riesgo directo al desnormalizar datos?",
+      opciones: ["Anomalía de red", "Anomalías de actualización e inconsistencia", "Anomalía de hardware"],
+      correcta: 1
+    },
+    {
+      id: 332,
+      dificultad: "medio",
+      tema: "Planes de Ejecución",
+      enunciado: "¿Qué se busca minimizar en la optimización de múltiples concatenaciones (JOIN)?",
+      opciones: ["El número de tablas", "El tamaño de los resultados intermedios", "El número de columnas proyectadas"],
+      correcta: 1
+    },
+    {
+      id: 333,
+      dificultad: "medio",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué parámetro físico se ajusta para reducir los fallos de página (swapping)?",
+      opciones: ["Tamaño del buffer de memoria RAM", "Velocidad de la CPU", "Número de usuarios"],
+      correcta: 0
+    },
+    {
+      id: 334,
+      dificultad: "medio",
+      tema: "Índices",
+      enunciado: "¿Qué es un 'Índice de cobertura'?",
+      opciones: ["Un índice que protege la BD", "Un índice que contiene todos los datos requeridos por la consulta sin acceder a la tabla", "Un índice que cubre varias bases de datos"],
+      correcta: 1
+    },
+    {
+      id: 335,
+      dificultad: "medio",
+      tema: "Optimización de Consultas",
+      enunciado: "En la optimización heurística, ¿qué se intenta evitar para prevenir explosiones de datos?",
+      opciones: ["Los JOINs", "Los productos cartesianos", "Las proyecciones"],
+      correcta: 1
+    },
+    {
+      id: 336,
+      dificultad: "medio",
+      tema: "Procedimientos Almacenados",
+      enunciado: "¿Por qué un procedimiento almacenado suele ser más rápido que ejecutar varias sentencias SQL separadas?",
+      opciones: ["Porque usa menos memoria", "Porque el código ya está compilado y se reduce el tráfico cliente-servidor", "Porque borra los logs"],
+      correcta: 1
+    },
+    {
+      id: 337,
+      dificultad: "medio",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué nivel de RAID utiliza paridad distribuida para balancear fiabilidad y rendimiento?",
+      opciones: ["RAID 1", "RAID 2", "RAID 5"],
+      correcta: 2
+    },
+    {
+      id: 338,
+      dificultad: "medio",
+      tema: "Optimización SQL",
+      enunciado: "Si el optimizador de Oracle no elige el mejor plan, ¿qué puede usar el desarrollador?",
+      opciones: ["Triggers", "Hints (sugerencias)", "Constraints"],
+      correcta: 1
+    },
+    {
+      id: 339,
+      dificultad: "medio",
+      tema: "Particionamiento",
+      enunciado: "¿Cuál es una ventaja del particionamiento horizontal?",
+      opciones: ["Elimina la necesidad de claves primarias", "Permite ejecutar consultas en paralelo sobre diferentes particiones", "Reduce el número de columnas"],
+      correcta: 1
+    },
+    {
+      id: 340,
+      dificultad: "medio",
+      tema: "Vistas",
+      enunciado: "¿Qué cláusula de SQL asegura que las actualizaciones a través de una vista cumplan su condición?",
+      opciones: ["WITH GRANT OPTION", "WITH CHECK OPTION", "CASCADE"],
+      correcta: 1
+    },
+    // --- NIVEL ALTO ---
+    {
+      id: 341,
+      dificultad: "alto",
+      tema: "Planes de Ejecución",
+      enunciado: "¿Cuál es la complejidad típica de una búsqueda en un índice de árbol B+?",
+      opciones: ["Lineal", "Logarítmica", "Exponencial"],
+      correcta: 1
+    },
+    {
+      id: 342,
+      dificultad: "alto",
+      tema: "Optimización de Consultas",
+      enunciado: "¿En qué algoritmo de JOIN se particionan ambos ficheros usando la misma función de dispersión?",
+      opciones: ["Bucle anidado", "Concatenación de dispersión (Hash Join)", "Ordenación-mezcla"],
+      correcta: 1
+    },
+    {
+      id: 343,
+      dificultad: "alto",
+      tema: "Optimización de Consultas",
+      enunciado: "¿Qué técnica de transformación de consultas anidadas busca convertirlas en JOINs?",
+      opciones: ["Normalización", "Descorrelación", "Incrustación"],
+      correcta: 1
+    },
+    {
+      id: 344,
+      dificultad: "alto",
+      tema: "Índices",
+      enunciado: "¿Cómo se llama el proceso de reorganizar físicamente una tabla para que coincida con el orden de un índice?",
+      opciones: ["Reconstrucción del índice agrupado", "Particionamiento vertical", "Trunking"],
+      correcta: 0
+    },
+    {
+      id: 345,
+      dificultad: "alto",
+      tema: "Optimización de Consultas",
+      enunciado: "¿Qué tipo de JOIN es más eficiente cuando ambos archivos están ya ordenados por el atributo común?",
+      opciones: ["Hash Join", "Sort-Merge Join (reunión por ordenación-mezcla)", "Bucle anidado"],
+      correcta: 1
+    },
+    {
+      id: 346,
+      dificultad: "alto",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué política de reemplazo de buffer elige el bloque que no ha sido usado por más tiempo?",
+      opciones: ["FIFO", "LRU (Least Recently Used)", "LIFO"],
+      correcta: 1
+    },
+    {
+      id: 347,
+      dificultad: "alto",
+      tema: "Optimización de Consultas",
+      enunciado: "En la optimización basada en costes, ¿qué factor influye más en el cálculo del coste de E/S?",
+      opciones: ["El número de columnas", "El número de bloques de disco transferidos", "El color de la tabla"],
+      correcta: 1
+    },
+    {
+      id: 348,
+      dificultad: "alto",
+      tema: "Índices",
+      enunciado: "¿Qué es la 'poliinstanciación' en la refinación de BD con seguridad?",
+      opciones: ["Instalar el SGBD varias veces", "Existencia de múltiples versiones de la misma fila con diferentes niveles de seguridad", "Tener muchos índices"],
+      correcta: 1
+    },
+    {
+      id: 349,
+      dificultad: "alto",
+      tema: "Vistas Materializadas",
+      enunciado: "Para mantener una vista materializada que usa la función SUM, ¿qué información adicional se debe guardar ante borrados?",
+      opciones: ["Ninguna", "Un recuento (count) de las tuplas que contribuyen a cada suma", "La fecha de creación"],
+      correcta: 1
+    },
+    {
+      id: 350,
+      dificultad: "alto",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué técnica RAID utiliza segmentación a nivel de bit y códigos de corrección Hamming?",
+      opciones: ["RAID 1", "RAID 2", "RAID 3"],
+      correcta: 1
+    },
+    {
+      id: 351,
+      dificultad: "alto",
+      tema: "Optimización SQL",
+      enunciado: "¿Por qué el orden de las tablas en la cláusula FROM puede afectar a algunos optimizadores antiguos?",
+      opciones: ["No afecta nunca", "Porque determina cuál se toma como relación externa en bucles anidados", "Porque cambia los nombres de las columnas"],
+      correcta: 1
+    },
+    {
+      id: 352,
+      dificultad: "alto",
+      tema: "Planes de Ejecución",
+      enunciado: "¿Qué tipo de árbol de reunión solo permite que el operando derecho de cada JOIN sea una tabla base?",
+      opciones: ["Árbol equilibrado", "Árbol en profundidad por la izquierda (Left-deep tree)", "Árbol denso"],
+      correcta: 1
+    },
+    {
+      id: 353,
+      dificultad: "alto",
+      tema: "Optimización de Consultas",
+      enunciado: "En un 'Hash Join' híbrido, ¿cuál es la ventaja clave?",
+      opciones: ["No usa memoria RAM", "Mantiene la primera partición totalmente en memoria para evitar escrituras a disco", "Usa algoritmos genéticos"],
+      correcta: 1
+    },
+    {
+      id: 354,
+      dificultad: "alto",
+      tema: "Denormalización",
+      enunciado: "¿Qué es el 'particionamiento vertical' en la refinación del diseño?",
+      opciones: ["Dividir una tabla en grupos de filas", "Dividir una tabla en varias tablas con diferentes columnas y la misma clave primaria", "Borrar todas las columnas"],
+      correcta: 1
+    },
+    {
+      id: 355,
+      dificultad: "alto",
+      tema: "Índices",
+      enunciado: "¿Qué sucede en un árbol B+ cuando un nodo se llena durante una inserción?",
+      opciones: ["Se borra el nodo", "El nodo se divide y se propaga la clave al nivel superior", "Se crea un archivo de texto"],
+      correcta: 1
+    },
+    {
+      id: 356,
+      dificultad: "alto",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué es un 'Checkpoint' en la gestión de rendimiento y recuperación?",
+      opciones: ["Un punto de control donde se escriben todos los buffers sucios a disco", "Una contraseña de administrador", "Un test de velocidad de red"],
+      correcta: 0
+    },
+    {
+      id: 357,
+      dificultad: "alto",
+      tema: "Optimización de Consultas",
+      enunciado: "¿Qué permite la 'Optimización semántica de consultas'?",
+      opciones: ["Traducir SQL al inglés", "Usar restricciones de integridad (ej: UNIQUE) para simplificar la lógica de la consulta", "Aumentar el tamaño de las fuentes"],
+      correcta: 1
+    },
+    {
+      id: 358,
+      dificultad: "alto",
+      tema: "Planes de Ejecución",
+      enunciado: "¿Qué técnica de E/S permite leer el siguiente bloque mientras se procesa el actual en memoria?",
+      opciones: ["Escritura retardada", "Doble buffer (double buffering)", "Acceso directo"],
+      correcta: 1
+    },
+    {
+      id: 359,
+      dificultad: "alto",
+      tema: "Vistas Materializadas",
+      enunciado: "Si una vista tiene un JOIN, ¿cuál es el mayor reto del mantenimiento incremental?",
+      opciones: ["El coste de espacio", "Determinar qué nuevas tuplas del JOIN resultan de las actualizaciones en las tablas base", "Elegir el nombre de la vista"],
+      correcta: 1
+    },
+    {
+      id: 360,
+      dificultad: "alto",
+      tema: "Configuración del Servidor",
+      enunciado: "¿Qué utilidad del SGBD monitoriza el uso y ofrece estadísticas de rendimiento al DBA?",
+      opciones: ["Compilador DML", "Monitor de rendimiento / Profiler", "Editor de texto"],
+      correcta: 1
+    }
+  ];
+
+  // ============================================================
+  // BANCO DE DESAFÍOS - MÓDULO 5: HERRAMIENTAS Y TECNOLOGÍAS
+  // ============================================================
+  const desafiosModulo5 = [
+    // --- NIVEL BAJO ---
+    {
+      id: 401,
+      dificultad: "bajo",
+      tema: "Herramientas de Diseño",
+      enunciado: "¿Cuál de estas herramientas es un software de pizarra colaborativa mencionado para el diseño de bases de datos?",
+      opciones: ["PostgreSQL", "Miro", "MySQL"],
+      correcta: 1
+    },
+    {
+      id: 402,
+      dificultad: "bajo",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Qué tipo de base de datos es MongoDB según las fuentes?",
+      opciones: ["Relacional", "Orientada a documentos", "Jerárquica"],
+      correcta: 1
+    },
+    {
+      id: 403,
+      dificultad: "bajo",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿A qué categoría pertenece el comando SELECT en SQL?",
+      opciones: ["DDL (Definición)", "DML (Manipulación)", "DCL (Control)"],
+      correcta: 1
+    },
+    {
+      id: 404,
+      dificultad: "bajo",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Cuál de estos sistemas es un SGBD relacional de software libre muy popular por su velocidad?",
+      opciones: ["MySQL", "MongoDB", "Oracle"],
+      correcta: 0
+    },
+    {
+      id: 405,
+      dificultad: "bajo",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando se utiliza para crear una nueva tabla en la base de datos?",
+      opciones: ["ALTER TABLE", "CREATE TABLE", "INSERT INTO"],
+      correcta: 1
+    },
+    {
+      id: 406,
+      dificultad: "bajo",
+      tema: "Herramientas de Diseño",
+      enunciado: "¿Cuál es una herramienta específica para el diseño de esquemas y modelado de bases de datos?",
+      opciones: ["DbSchema", "MongoDB", "psql"],
+      correcta: 0
+    },
+    {
+      id: 407,
+      dificultad: "bajo",
+      tema: "Sistemas de Gestión",
+      enunciado: "PostgreSQL es clasificado principalmente como un sistema:",
+      opciones: ["NoSQL", "Objeto-Relacional (ORDBMS)", "Solo de archivos"],
+      correcta: 1
+    },
+    {
+      id: 408,
+      dificultad: "bajo",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué sigla define a los comandos SQL que controlan los privilegios de acceso (GRANT, REVOKE)?",
+      opciones: ["DML", "DDL", "DCL"],
+      correcta: 2
+    },
+    {
+      id: 409,
+      dificultad: "bajo",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando se usa para borrar definitivamente una tabla y su estructura?",
+      opciones: ["DELETE", "DROP", "TRUNCATE"],
+      correcta: 1
+    },
+    {
+      id: 410,
+      dificultad: "bajo",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Qué lenguaje procedimental es propio de PostgreSQL?",
+      opciones: ["PL/SQL", "T-SQL", "PL/pgSQL"],
+      correcta: 2
+    },
+    {
+      id: 411,
+      dificultad: "bajo",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Cuál de estos comandos es parte del DDL (Lenguaje de Definición de Datos)?",
+      opciones: ["UPDATE", "ALTER", "SELECT"],
+      correcta: 1
+    },
+    {
+      id: 412,
+      dificultad: "bajo",
+      tema: "Sistemas de Gestión",
+      enunciado: "En la jerarquía NoSQL, MongoDB destaca por su capacidad de:",
+      opciones: ["Escalabilidad horizontal", "Uso estricto de tablas", "Eliminar el uso de JavaScript"],
+      correcta: 0
+    },
+    {
+      id: 413,
+      dificultad: "bajo",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando DML se usa para modificar registros existentes?",
+      opciones: ["INSERT", "UPDATE", "CHANGE"],
+      correcta: 1
+    },
+    {
+      id: 414,
+      dificultad: "bajo",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando SQL se utiliza para otorgar permisos a un usuario?",
+      opciones: ["GRANT", "REVOKE", "ALLOW"],
+      correcta: 0
+    },
+    {
+      id: 415,
+      dificultad: "bajo",
+      tema: "Herramientas de Diseño",
+      enunciado: "¿Cuál de estas herramientas es una plataforma de diagramación basada en la nube?",
+      opciones: ["Lucidchart", "PostgreSQL", "MySQL Administrator"],
+      correcta: 0
+    },
+    {
+      id: 416,
+      dificultad: "bajo",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Qué nombre recibe el cliente interactivo de línea de comandos de PostgreSQL?",
+      opciones: ["pgAdmin", "psql", "mysql-cli"],
+      correcta: 1
+    },
+    {
+      id: 417,
+      dificultad: "bajo",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando se usa para eliminar filas de una tabla sin borrar la tabla misma?",
+      opciones: ["DROP", "DELETE", "REMOVE"],
+      correcta: 1
+    },
+    {
+      id: 418,
+      dificultad: "bajo",
+      tema: "Sistemas de Gestión",
+      enunciado: "En MySQL, ¿cuál es la característica más destacable según las fuentes?",
+      opciones: ["Su velocidad de respuesta", "Su soporte nativo a grafos", "Que no usa SQL"],
+      correcta: 0
+    },
+    {
+      id: 419,
+      dificultad: "bajo",
+      tema: "Lenguajes de Consulta",
+      enunciado: "El estándar SQL se caracteriza por ser un lenguaje de tipo:",
+      opciones: ["Procedimental", "Declarativo (No procedimental)", "Binario"],
+      correcta: 1
+    },
+    {
+      id: 420,
+      dificultad: "bajo",
+      tema: "Herramientas de Diseño",
+      enunciado: "¿Qué herramienta CASE se menciona para realizar ingeniería inversa y encontrar esquemas conceptuales?",
+      opciones: ["Visual Paradigm", "MongoDB", "MySQL"],
+      correcta: 0
+    },
+    // --- NIVEL MEDIO ---
+    {
+      id: 421,
+      dificultad: "medio",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Cuál es el cliente gráfico máximo exponente para administrar PostgreSQL?",
+      opciones: ["MySQL Administrator", "pgAdmin3", "Lucidchart"],
+      correcta: 1
+    },
+    {
+      id: 422,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En PL/pgSQL, ¿qué comando se usa para instalar el lenguaje en una base de datos específica?",
+      opciones: ["install language", "createlang", "add language"],
+      correcta: 1
+    },
+    {
+      id: 423,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué cláusula de CREATE TABLE permite asignar un valor automático si no se especifica uno?",
+      opciones: ["CHECK", "DEFAULT", "UNIQUE"],
+      correcta: 1
+    },
+    {
+      id: 424,
+      dificultad: "medio",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Qué permite PostgreSQL que lo diferencia de muchos otros SGBD libres (orientación a objetos)?",
+      opciones: ["Solo tablas planas", "Herencia de tablas", "Eliminar las claves primarias"],
+      correcta: 1
+    },
+    {
+      id: 425,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En psql, ¿qué comando interno muestra la lista de todas las bases de datos?",
+      opciones: ["\\d", "\\l", "\\c"],
+      correcta: 1
+    },
+    {
+      id: 426,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué operador de PL/pgSQL se utiliza para realizar una asignación de valor a una variable?",
+      opciones: ["=", ":=", "=="],
+      correcta: 1
+    },
+    {
+      id: 427,
+      dificultad: "medio",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Cuál es una limitación histórica de MySQL mencionada en las fuentes en comparación con PostgreSQL?",
+      opciones: ["Es más lento", "Carece de algunas características de estándares avanzados", "No permite conexiones PHP"],
+      correcta: 1
+    },
+    {
+      id: 428,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué instrucción DCL revoca privilegios a un usuario?",
+      opciones: ["GRANT", "DENY", "REVOKE"],
+      correcta: 2
+    },
+    {
+      id: 429,
+      dificultad: "medio",
+      tema: "Sistemas de Gestión",
+      enunciado: "MongoDB almacena los datos en estructuras que no aplican el modelo:",
+      opciones: ["Clave-valor", "Entidad-Relación", "Documental"],
+      correcta: 1
+    },
+    {
+      id: 430,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Cómo se llama la extensión de SQL que permite crear funciones y disparadores al estilo tradicional?",
+      opciones: ["SQL Avanzado", "PL/pgSQL", "SQL Procedural"],
+      correcta: 1
+    },
+    {
+      id: 431,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "Para borrar una vista del catálogo, ¿cuál es la sintaxis correcta?",
+      opciones: ["DELETE VIEW", "DROP VIEW", "REMOVE VIEW"],
+      correcta: 1
+    },
+    {
+      id: 432,
+      dificultad: "medio",
+      tema: "Herramientas de Diseño",
+      enunciado: "Herramientas como Rational Rose permiten generar automáticamente código de qué tipo?",
+      opciones: ["Código PHP", "Código DDL de SQL", "Archivos de MongoDB"],
+      correcta: 1
+    },
+    {
+      id: 433,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En PL/pgSQL, la sección donde se definen las variables locales se llama:",
+      opciones: ["VARIABLES", "DECLARE", "BODY"],
+      correcta: 1
+    },
+    {
+      id: 434,
+      dificultad: "medio",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Qué protocolo estándar permite conectar aplicaciones con SGBDs como PostgreSQL o MySQL?",
+      opciones: ["ODBC / JDBC", "HTTP", "FTP"],
+      correcta: 0
+    },
+    {
+      id: 435,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando SQL se usa para confirmar y grabar los cambios de una transacción en el disco?",
+      opciones: ["SAVE", "COMMIT", "ROLLBACK"],
+      correcta: 1
+    },
+    {
+      id: 436,
+      dificultad: "medio",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Cuál es una ventaja competitiva de PostgreSQL mencionada para proyectos de alto nivel?",
+      opciones: ["Sistema de extensión y tipos definidos por usuario", "Es exclusivo para Windows", "No requiere administración"],
+      correcta: 0
+    },
+    {
+      id: 437,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En psql, ¿qué comando se usa para visualizar el contenido del buffer de la última sentencia?",
+      opciones: ["\\v", "\\p", "\\s"],
+      correcta: 1
+    },
+    {
+      id: 438,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué sentencia DML permite cargar lotes de datos en una única operación?",
+      opciones: ["SELECT", "INSERT", "LOAD"],
+      correcta: 1
+    },
+    {
+      id: 439,
+      dificultad: "medio",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En PL/pgSQL, ¿qué palabra clave se usa para terminar una estructura condicional IF?",
+      opciones: ["END IF", "FINISH", "DONE"],
+      correcta: 0
+    },
+    {
+      id: 440,
+      dificultad: "medio",
+      tema: "Sistemas de Gestión",
+      enunciado: "MySQL es desarrollado principalmente en qué lenguaje de programación?",
+      opciones: ["Java", "C/C++", "Python"],
+      correcta: 1
+    },
+    // --- NIVEL ALTO ---
+    {
+      id: 441,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En una función PL/pgSQL, ¿cómo se referencia al primer parámetro pasado a la función?",
+      opciones: ["$0", "$1", "param1"],
+      correcta: 1
+    },
+    {
+      id: 442,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando se usa en PL/pgSQL para desplegar un mensaje de error o advertencia?",
+      opciones: ["PRINT", "RAISE", "ECHO"],
+      correcta: 1
+    },
+    {
+      id: 443,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué opción del comando REVOKE elimina también los privilegios otorgados en cadena por el usuario?",
+      opciones: ["RESTRICT", "CASCADE", "ALL"],
+      correcta: 1
+    },
+    {
+      id: 444,
+      dificultad: "alto",
+      tema: "Sistemas de Gestión",
+      enunciado: "En PostgreSQL, ¿qué permite la 'poliinstanciación' en contextos de seguridad?",
+      opciones: ["Tener muchas BD iguales", "Múltiples versiones de una fila con distintos niveles de seguridad", "Instalar el SGBD en varios puertos"],
+      correcta: 1
+    },
+    {
+      id: 445,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "Para borrar completamente el buffer de psql y empezar de nuevo una sentencia, se usa:",
+      opciones: ["\\c", "\\r", "\\q"],
+      correcta: 1
+    },
+    {
+      id: 446,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando SQL se utiliza para definir una 'Aserción' o restricción general de la base de datos?",
+      opciones: ["CREATE RULE", "CREATE ASSERTION", "CREATE CHECK"],
+      correcta: 1
+    },
+    {
+      id: 447,
+      dificultad: "alto",
+      tema: "Sistemas de Gestión",
+      enunciado: "En la API nativa de PostgreSQL para PHP, ¿qué función devuelve el OID de la última inserción?",
+      opciones: ["pg_last_oid", "pg_get_id", "pg_insert_id"],
+      correcta: 0
+    },
+    {
+      id: 448,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En PL/pgSQL, ¿cuál de estos bucles es infinito por defecto y requiere una sentencia de salida?",
+      opciones: ["FOR", "LOOP", "WHILE"],
+      correcta: 1
+    },
+    {
+      id: 449,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando SQL permite modificar la estructura de una tabla agregando una columna?",
+      opciones: ["UPDATE TABLE", "ALTER TABLE", "MODIFY TABLE"],
+      correcta: 1
+    },
+    {
+      id: 450,
+      dificultad: "alto",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Cómo se llama el lenguaje de consulta interactivo de bajo nivel que se usa incrustado (record-at-a-time)?",
+      opciones: ["SQL", "DML Procedural", "Datalog"],
+      correcta: 1
+    },
+    {
+      id: 451,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En PL/pgSQL, para asignar el resultado de un SELECT a una variable se usa:",
+      opciones: ["SELECT TO", "SELECT INTO", "SET FROM"],
+      correcta: 1
+    },
+    {
+      id: 452,
+      dificultad: "alto",
+      tema: "Sistemas de Gestión",
+      enunciado: "En PostgreSQL, ¿qué comando del sistema operativo (no de psql) se usa para crear una nueva BD?",
+      opciones: ["create database", "createdb", "newdb"],
+      correcta: 1
+    },
+    {
+      id: 453,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué sentencia SQL DCL permite que el receptor de un privilegio pueda a su vez otorgarlo a otros?",
+      opciones: ["WITH ADMIN OPTION", "WITH GRANT OPTION", "ALLOW CASCADE"],
+      correcta: 1
+    },
+    {
+      id: 454,
+      dificultad: "alto",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Cuál es la principal ventaja de usar el paquete PEAR::DB en aplicaciones PHP?",
+      opciones: ["Hacer las consultas más rápidas", "Abstracción del SGBD mediante una sintaxis común", "Eliminar la necesidad de SQL"],
+      correcta: 1
+    },
+    {
+      id: 455,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En un trigger de PostgreSQL, ¿qué variable especial contiene la nueva fila de datos en una operación INSERT?",
+      opciones: ["NEW", "OLD", "CURRENT"],
+      correcta: 0
+    },
+    {
+      id: 456,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Qué comando SQL se usa para deshacer todos los cambios de una transacción no finalizada?",
+      opciones: ["UNDO", "ROLLBACK", "BACK"],
+      correcta: 1
+    },
+    {
+      id: 457,
+      dificultad: "alto",
+      tema: "Herramientas de Diseño",
+      enunciado: "En Rational Rose Data Modeler, ¿qué asistente genera la BD ejecutando un fichero DDL?",
+      opciones: ["Asistente de ingeniería inversa", "Asistente de ingeniería directa", "Asistente de sincronización"],
+      correcta: 1
+    },
+    {
+      id: 458,
+      dificultad: "alto",
+      tema: "Sistemas de Gestión",
+      enunciado: "¿Qué comando psql permite conectarse a una base de datos diferente sin salir del cliente?",
+      opciones: ["\\c", "\\connect", "Ambas son correctas"],
+      correcta: 2
+    },
+    {
+      id: 459,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "En PL/pgSQL, para devolver un conjunto de resultados (filas) se utiliza el tipo de retorno:",
+      opciones: ["SETOF", "ARRAY", "LIST"],
+      correcta: 0
+    },
+    {
+      id: 460,
+      dificultad: "alto",
+      tema: "Lenguajes de Consulta",
+      enunciado: "¿Cuál es el estándar de SQL más completo y extendido mencionado para PostgreSQL?",
+      opciones: ["SQL-86", "SQL:92 / SQL:99", "SQL-2011"],
+      correcta: 1
+    }
+  ];
 </script>
 </body>
 </html>
